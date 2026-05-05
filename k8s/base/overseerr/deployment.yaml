@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: overseerr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: overseerr
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: requests
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: overseerr
+  template:
+    metadata:
+      labels:
+        app: overseerr
+        app.kubernetes.io/part-of: media-stack
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: overseerr
+        image: lscr.io/linuxserver/overseerr:latest
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        ports:
+        - name: http
+          containerPort: 5055
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        startupProbe:
+          httpGet:
+            path: /api/v1/status
+            port: 5055
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 18
+        livenessProbe:
+          httpGet:
+            path: /api/v1/status
+            port: 5055
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/v1/status
+            port: 5055
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "384Mi"
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: overseerr-config-pvc

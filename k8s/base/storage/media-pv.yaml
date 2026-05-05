@@ -1,0 +1,57 @@
+# Persistent Volumes for media and downloads.
+# REQUIRED: Set the node name and host paths to match your setup.
+#
+# Before applying:
+#   1. Replace CHANGE-ME-NODE-NAME with your node's hostname: kubectl get nodes
+#   2. Ensure /mnt/media and /mnt/downloads are mounted on that node
+#   3. Adjust storage sizes to match your drive
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: media-library-pv
+  labels:
+    type: media
+    app.kubernetes.io/part-of: media-stack
+spec:
+  capacity:
+    storage: 2Ti            # Adjust to your drive size
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: media-local
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /mnt/media        # Mount point of your media drive on the host
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - CHANGE-ME-NODE-NAME   # Replace with: kubectl get nodes -o name | cut -d/ -f2
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: downloads-pv
+  labels:
+    type: downloads
+    app.kubernetes.io/part-of: media-stack
+spec:
+  capacity:
+    storage: 500Gi          # Adjust to your available download space
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: media-local
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /mnt/downloads    # Mount point for in-progress downloads
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - CHANGE-ME-NODE-NAME

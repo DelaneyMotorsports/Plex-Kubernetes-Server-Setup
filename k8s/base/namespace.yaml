@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: media
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    # Baseline pod security: disallows privileged pods except where explicitly overridden
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: baseline

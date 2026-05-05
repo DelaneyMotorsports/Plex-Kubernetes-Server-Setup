@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: radarr
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: pvr
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: radarr
+  template:
+    metadata:
+      labels:
+        app: radarr
+        app.kubernetes.io/part-of: media-stack
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: radarr
+        image: lscr.io/linuxserver/radarr:latest
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        ports:
+        - name: http
+          containerPort: 7878
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: media
+          mountPath: /media
+        - name: downloads
+          mountPath: /downloads
+        startupProbe:
+          httpGet:
+            path: /ping
+            port: 7878
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 18
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 7878
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: 7878
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "384Mi"
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: radarr-config-pvc
+      - name: media
+        persistentVolumeClaim:
+          claimName: media-library-pvc
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: downloads-pvc

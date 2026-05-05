@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bazarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: bazarr
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: subtitles
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: bazarr
+  template:
+    metadata:
+      labels:
+        app: bazarr
+        app.kubernetes.io/part-of: media-stack
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: bazarr
+        image: lscr.io/linuxserver/bazarr:latest
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        ports:
+        - name: http
+          containerPort: 6767
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: media
+          mountPath: /media
+        startupProbe:
+          httpGet:
+            path: /
+            port: 6767
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 18
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 6767
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 6767
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: bazarr-config-pvc
+      - name: media
+        persistentVolumeClaim:
+          claimName: media-library-pvc

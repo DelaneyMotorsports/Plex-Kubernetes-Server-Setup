@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Pi 5 overlay — single-node ARM64, 8GB RAM
+# Inherits all base resources and applies Pi 5-specific patches.
+bases:
+  - ../../base
+
+patches:
+  # Pin all deployments to the Pi 5 node
+  - path: node-selector-patch.yaml
+    target:
+      kind: Deployment
+      namespace: media

@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plex
+  namespace: media
+  labels:
+    app.kubernetes.io/name: plex
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: media-server
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: plex
+  template:
+    metadata:
+      labels:
+        app: plex
+        app.kubernetes.io/part-of: media-stack
+    spec:
+      # hostNetwork exposes Plex on the host IP for local network discovery (GDM).
+      # Clients find the server automatically without needing manual IP entry.
+      # Remove if you don't need local discovery and want strict network isolation.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: plex
+        image: lscr.io/linuxserver/plex:latest
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        - secretRef:
+            name: media-stack-secret
+        env:
+        - name: VERSION
+          value: "docker"
+        ports:
+        - name: plex
+          containerPort: 32400
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: media
+          mountPath: /media
+        - name: transcode
+          mountPath: /transcode
+
+        # ── Optional: hardware transcoding on Pi 5 (VideoCore VII)
+        # Uncomment the device mount below and set securityContext.privileged: true
+        # Also add to volumeMounts: { name: dri, mountPath: /dev/dri }
+        # - name: dri
+        #   mountPath: /dev/dri
+
+        securityContext:
+          privileged: false         # Set true only if using hardware transcoding
+        startupProbe:
+          httpGet:
+            path: /identity
+            port: 32400
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 24      # Up to 4 minutes for initial Plex startup
+        livenessProbe:
+          httpGet:
+            path: /identity
+            port: 32400
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /identity
+            port: 32400
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "2000m"
+            memory: "3Gi"           # Generous for transcoding on 8GB Pi 5
+
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: plex-config-pvc
+      - name: media
+        persistentVolumeClaim:
+          claimName: media-library-pvc
+      - name: transcode
+        emptyDir: {}               # Ephemeral — transcodes are transient by nature
+
+      # ── Optional: hardware transcoding device
+      # - name: dri
+      #   hostPath:
+      #     path: /dev/dri
