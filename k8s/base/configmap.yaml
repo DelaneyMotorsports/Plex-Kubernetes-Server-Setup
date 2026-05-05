@@ -22,10 +22,5 @@ data:
   # ---- qBittorrent ----
   WEBUI_PORT: "8080"
 
-  # ---- Flaresolverr ----
-  LOG_LEVEL: "info"
-  LOG_HTML: "false"
-  CAPTCHA_SOLVER: "none"
-
   # ---- Plex ----
   VERSION: "docker"
