@@ -1,0 +1,143 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gluetun-qbittorrent
+  namespace: media
+  labels:
+    app.kubernetes.io/name: gluetun-qbittorrent
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: download
+spec:
+  replicas: 1
+  # Recreate avoids split-brain on ReadWriteOnce PVCs and VPN port conflicts
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: gluetun-qbittorrent
+  template:
+    metadata:
+      labels:
+        app: gluetun-qbittorrent
+        app.kubernetes.io/part-of: media-stack
+    spec:
+      # ── Gluetun runs as a sidecar init container (K8s 1.29+, stable in 1.32)
+      # It starts before qBittorrent and keeps running alongside it.
+      # The shared pod network namespace means ALL qBittorrent traffic
+      # is automatically routed through the WireGuard tunnel.
+      initContainers:
+      - name: gluetun
+        image: qmcgaw/gluetun:latest
+        restartPolicy: Always       # Sidecar — survives alongside main containers
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN"]      # Required to create the WireGuard tun interface
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        - secretRef:
+            name: media-stack-secret
+        ports:
+        - name: control
+          containerPort: 8000
+        - name: http-proxy
+          containerPort: 8888
+        volumeMounts:
+        - name: gluetun-config
+          mountPath: /gluetun
+        readinessProbe:
+          httpGet:
+            path: /v1/publicip/ip
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 12      # Up to 2 minutes to establish VPN
+        livenessProbe:
+          httpGet:
+            path: /v1/publicip/ip
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "128Mi"
+
+      # ── Wait for VPN before starting qBittorrent (regular init container)
+      # Runs after gluetun sidecar starts; blocks until VPN reports a public IP.
+      - name: wait-for-vpn
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for Gluetun VPN to connect..."
+          until wget -qO- http://localhost:8000/v1/publicip/ip 2>/dev/null; do
+            sleep 5
+          done
+          echo "VPN connected. Starting qBittorrent."
+
+      containers:
+      - name: qbittorrent
+        image: lscr.io/linuxserver/qbittorrent:latest
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        env:
+        - name: WEBUI_PORT
+          value: "8080"
+        ports:
+        - name: webui
+          containerPort: 8080
+        - name: bittorrent-tcp
+          containerPort: 6881
+          protocol: TCP
+        - name: bittorrent-udp
+          containerPort: 6881
+          protocol: UDP
+        volumeMounts:
+        - name: qbittorrent-config
+          mountPath: /config
+        - name: downloads
+          mountPath: /downloads
+        startupProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 18    # Up to 3 minutes on cold start
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+
+      volumes:
+      - name: gluetun-config
+        persistentVolumeClaim:
+          claimName: gluetun-config-pvc
+      - name: qbittorrent-config
+        persistentVolumeClaim:
+          claimName: qbittorrent-config-pvc
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: downloads-pvc

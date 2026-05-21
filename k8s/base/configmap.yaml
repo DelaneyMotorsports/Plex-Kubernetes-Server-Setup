@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: media-stack-config
+  namespace: media
+  labels:
+    app.kubernetes.io/part-of: media-stack
+data:
+  # ---- Common ----
+  TZ: "America/New_York"
+  PUID: "1000"
+  PGID: "1000"
+
+  # ---- Gluetun / VPN ----
+  VPN_SERVICE_PROVIDER: "nordvpn"
+  VPN_TYPE: "wireguard"
+  SERVER_REGIONS: "Europe"
+  SERVER_CATEGORIES: "P2P"
+  UPDATER_PERIOD: "24h"
+  UPDATER_VPN_SERVICE_PROVIDERS: "nordvpn"
+
+  # ---- qBittorrent ----
+  WEBUI_PORT: "8080"
+
+  # ---- Plex ----
+  VERSION: "docker"

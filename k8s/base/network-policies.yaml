@@ -1,0 +1,113 @@
+# Network policies enforce least-privilege communication between services.
+# All pods in the media namespace can talk to each other freely,
+# but traffic from other namespaces is blocked unless explicitly allowed.
+---
+# Default: deny all ingress from outside the media namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-external-ingress
+  namespace: media
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: media
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+    - namespaceSelector:
+        matchLabels:
+          app.kubernetes.io/name: traefik
+---
+# Allow all pods in media namespace to reach kube-dns
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: media
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+---
+# Plex: allow ingress from anywhere (it's the user-facing UI)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-plex-ingress
+  namespace: media
+spec:
+  podSelector:
+    matchLabels:
+      app: plex
+  policyTypes:
+  - Ingress
+  ingress:
+  - {}
+---
+# Overseerr: allow ingress from anywhere (user-facing request portal)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-overseerr-ingress
+  namespace: media
+spec:
+  podSelector:
+    matchLabels:
+      app: overseerr
+  policyTypes:
+  - Ingress
+  ingress:
+  - {}
+---
+# Allow all pods in media namespace to reach each other
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intra-namespace
+  namespace: media
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: media
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: media
+---
+# Allow all internet-bound egress (VPN pod handles its own filtering internally)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-internet-egress
+  namespace: media
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16

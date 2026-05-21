@@ -1,0 +1,6 @@
+# Ensures all media pods schedule on the Pi 5 node.
+# Replace CHANGE-ME-NODE-NAME with your node's hostname: kubectl get nodes
+- op: add
+  path: /spec/template/spec/nodeSelector
+  value:
+    kubernetes.io/hostname: CHANGE-ME-NODE-NAME

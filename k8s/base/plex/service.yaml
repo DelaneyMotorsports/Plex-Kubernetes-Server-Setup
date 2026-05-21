@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: plex
+  namespace: media
+  labels:
+    app.kubernetes.io/name: plex
+    app.kubernetes.io/part-of: media-stack
+spec:
+  selector:
+    app: plex
+  # LoadBalancer gives Plex a stable LAN IP for remote access and player discovery.
+  # On bare-metal/K3s without a cloud LB, use MetalLB or change to NodePort.
+  # For pure ingress access only, change to ClusterIP.
+  type: LoadBalancer
+  ports:
+  - name: plex
+    port: 32400
+    targetPort: 32400
+    protocol: TCP

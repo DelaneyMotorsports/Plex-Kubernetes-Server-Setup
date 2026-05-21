@@ -1,0 +1,19 @@
+# Secrets - NEVER commit these
+.env
+*.env.local
+secrets/
+
+# Kubernetes generated files
+*.kubeconfig
+kubeconfig
+
+# Editor / OS
+.DS_Store
+.vscode/
+*.swp
+*.swo
+
+# Talos config (contains private keys)
+talosconfig
+controlplane.yaml
+worker.yaml

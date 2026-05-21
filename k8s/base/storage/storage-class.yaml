@@ -1,0 +1,10 @@
+# StorageClass for media/downloads volumes that live on a specific host drive.
+# Dynamic provisioning is disabled — you define PVs manually pointing to your mount.
+# Config volumes use the cluster default (local-path on K3s).
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: media-local
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
