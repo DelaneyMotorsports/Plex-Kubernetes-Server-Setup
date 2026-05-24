@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ersatztv-ingress
+  namespace: media
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: ersatztv.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ersatztv
+            port:
+              number: 8409

@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: varken
+  namespace: media
+  labels:
+    app.kubernetes.io/name: varken
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: metrics
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: varken
+  template:
+    metadata:
+      labels:
+        app: varken
+        app.kubernetes.io/part-of: media-stack
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: varken
+        image: boerderij/varken:latest
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: varken-config-pvc

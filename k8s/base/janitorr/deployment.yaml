@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: janitorr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: janitorr
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: maintenance
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: janitorr
+  template:
+    metadata:
+      labels:
+        app: janitorr
+        app.kubernetes.io/part-of: media-stack
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: janitorr
+        image: schaka/janitorr:latest
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        ports:
+        - name: http
+          containerPort: 8978
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: media
+          mountPath: /media
+        startupProbe:
+          httpGet:
+            path: /
+            port: 8978
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 18
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8978
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8978
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: janitorr-config-pvc
+      - name: media
+        persistentVolumeClaim:
+          claimName: media-library-pvc

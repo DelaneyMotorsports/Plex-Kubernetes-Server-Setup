@@ -15,6 +15,19 @@ resources:
   - bazarr/
   - overseerr/
   - plex/
+  - tdarr/
+  - varken/
+  - sub-zero/
+  - theposterdb/
+  - mediux/
+  - janitorr/
+  - scannarr/
+  - recyclarr/
+  - profilarr/
+  - unpackerr/
+  - ersatztv/
+  - kometa/
+  - posterr/
 
 commonLabels:
   app.kubernetes.io/managed-by: kustomize

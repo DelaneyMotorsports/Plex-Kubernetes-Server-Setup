@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: theposterdb
+  namespace: media
+  labels:
+    app.kubernetes.io/name: theposterdb
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: artwork
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: theposterdb
+  template:
+    metadata:
+      labels:
+        app: theposterdb
+        app.kubernetes.io/part-of: media-stack
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: theposterdb
+        image: theposterdb/app:latest
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        ports:
+        - name: http
+          containerPort: 80
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: theposterdb-config-pvc

@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sub-zero-ingress
+  namespace: media
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: sub-zero.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: sub-zero
+            port:
+              number: 5000

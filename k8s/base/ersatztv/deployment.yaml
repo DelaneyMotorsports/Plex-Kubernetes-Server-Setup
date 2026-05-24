@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ersatztv
+  namespace: media
+  labels:
+    app.kubernetes.io/name: ersatztv
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: live-tv
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ersatztv
+  template:
+    metadata:
+      labels:
+        app: ersatztv
+        app.kubernetes.io/part-of: media-stack
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: ersatztv
+        image: jasongdove/ersatztv:latest
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        ports:
+        - name: http
+          containerPort: 8409
+        volumeMounts:
+        - name: config
+          mountPath: /root/.local/share/ersatztv
+        - name: media
+          mountPath: /media
+        startupProbe:
+          httpGet:
+            path: /
+            port: 8409
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 18
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8409
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8409
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: ersatztv-config-pvc
+      - name: media
+        persistentVolumeClaim:
+          claimName: media-library-pvc

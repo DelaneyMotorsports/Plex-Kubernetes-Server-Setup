@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kometa
+  namespace: media
+  labels:
+    app.kubernetes.io/name: kometa
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: metadata
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: kometa
+  template:
+    metadata:
+      labels:
+        app: kometa
+        app.kubernetes.io/part-of: media-stack
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: kometa
+        image: kometateam/kometa:latest
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: kometa-config-pvc
