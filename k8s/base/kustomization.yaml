@@ -15,6 +15,7 @@ resources:
   - bazarr/
   - overseerr/
   - plex/
+  - tdarr/
 
 commonLabels:
   app.kubernetes.io/managed-by: kustomize

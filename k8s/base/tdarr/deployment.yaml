@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tdarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: tdarr
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: transcode
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: tdarr
+  template:
+    metadata:
+      labels:
+        app: tdarr
+        app.kubernetes.io/part-of: media-stack
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: tdarr
+        image: ghcr.io/haveagitgat/tdarr:latest
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        env:
+        - name: serverIP
+          value: "0.0.0.0"
+        - name: serverPort
+          value: "8266"
+        - name: webUIPort
+          value: "8265"
+        - name: internalNode
+          value: "true"
+        - name: inContainer
+          value: "true"
+        - name: ffmpegVersion
+          value: "6"
+        - name: UMASK_SET
+          value: "002"
+        ports:
+        - name: webui
+          containerPort: 8265
+        - name: server
+          containerPort: 8266
+        volumeMounts:
+        - name: config
+          mountPath: /app/configs
+        - name: logs
+          mountPath: /app/logs
+        - name: media
+          mountPath: /media
+        - name: transcode-cache
+          mountPath: /temp
+        startupProbe:
+          httpGet:
+            path: /
+            port: 8265
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 18
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8265
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8265
+          periodSeconds: 10
+          failureThreshold: 3
+        # Tdarr runs the built-in transcoding node — CPU budget matches Plex
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "2000m"
+            memory: "2Gi"
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: tdarr-config-pvc
+      - name: logs
+        persistentVolumeClaim:
+          claimName: tdarr-logs-pvc
+      - name: media
+        persistentVolumeClaim:
+          claimName: media-library-pvc
+      - name: transcode-cache
+        emptyDir: {}
