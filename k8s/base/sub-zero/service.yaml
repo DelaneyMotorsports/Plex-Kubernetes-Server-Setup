@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sub-zero
+  namespace: media
+  labels:
+    app.kubernetes.io/name: sub-zero
+    app.kubernetes.io/part-of: media-stack
+spec:
+  selector:
+    app: sub-zero
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 5000
+    targetPort: 5000

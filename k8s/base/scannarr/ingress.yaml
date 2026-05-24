@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: scannarr-ingress
+  namespace: media
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: scannarr.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: scannarr
+            port:
+              number: 8080

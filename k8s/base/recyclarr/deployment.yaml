@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recyclarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: recyclarr
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: config-sync
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: recyclarr
+  template:
+    metadata:
+      labels:
+        app: recyclarr
+        app.kubernetes.io/part-of: media-stack
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: recyclarr
+        image: ghcr.io/recyclarr/recyclarr:latest
+        # Daemon mode — syncs on the schedule defined in recyclarr.yaml
+        args: ["daemon"]
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: recyclarr-config-pvc

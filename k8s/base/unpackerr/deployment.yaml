@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unpackerr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: unpackerr
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: extraction
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: unpackerr
+  template:
+    metadata:
+      labels:
+        app: unpackerr
+        app.kubernetes.io/part-of: media-stack
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: unpackerr
+        image: golift/unpackerr:latest
+        envFrom:
+        - configMapRef:
+            name: media-stack-config
+        env:
+        # Point Unpackerr at qBittorrent and the *arr apps via their K8s service names.
+        # Full config via /etc/unpackerr/unpackerr.conf or UN_* env vars.
+        - name: UN_SONARR_0_URL
+          value: "http://sonarr:8989"
+        - name: UN_RADARR_0_URL
+          value: "http://radarr:7878"
+        - name: UN_QBIT_0_URL
+          value: "http://qbittorrent:8080"
+        volumeMounts:
+        - name: config
+          mountPath: /etc/unpackerr
+        - name: downloads
+          mountPath: /downloads
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "300m"
+            memory: "256Mi"
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: unpackerr-config-pvc
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: downloads-pvc
