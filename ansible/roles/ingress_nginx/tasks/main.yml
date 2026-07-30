@@ -17,3 +17,16 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
   changed_when: false
+
+# The baremetal provider exposes the controller as a NodePort (high ports). Switch it to a
+# LoadBalancer so K3s ServiceLB (klipper) binds the node's :80/:443 and forwards to it — this
+# is what makes http://<service>.local work on plain port 80, the same slot Traefik used to hold.
+# (Multi-node: swap ServiceLB for MetalLB with a dedicated address pool — see README roadmap.)
+- name: Expose ingress-nginx on :80/:443 via ServiceLB
+  ansible.builtin.command: >
+    k3s kubectl -n ingress-nginx patch svc ingress-nginx-controller
+    --type merge -p '{"spec":{"type":"LoadBalancer","externalTrafficPolicy":"Local"}}'
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: ingress_svc_patch
+  changed_when: "'patched' in ingress_svc_patch.stdout and 'no change' not in ingress_svc_patch.stdout"

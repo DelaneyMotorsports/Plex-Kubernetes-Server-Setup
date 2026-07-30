@@ -205,6 +205,11 @@ Add to `/etc/hosts` (or your local DNS/Pi-hole):
 <PLEX_BOX_IP>  bazarr.local overseerr.local qbittorrent.local
 ```
 
+The apps are served over HTTP on port **80** by ingress-nginx, which K3s ServiceLB (klipper) binds to
+the node's IP — so `http://sonarr.local` just works, no port suffix. (Plex is the exception: it uses
+`hostNetwork` and answers directly on `:32400`.) On a multi-node cluster, swap ServiceLB for MetalLB
+with a dedicated address pool.
+
 ---
 
 ## Maintenance
@@ -281,6 +286,7 @@ bootstrap at it instead of running the K3s roles (Pi 5 support since Talos v1.7)
 - [ ] **Hardware transcoding** — Pi 5 VideoCore VII; uncomment the `/dev/dri` mount in
   `k8s/base/plex/deployment.yaml` and set `privileged: true`.
 - [ ] **3-node HA** — embedded-etcd control plane; storage is already RWX-ready.
+- [ ] **MetalLB** — dedicated LAN IP for ingress on multi-node (replaces single-node ServiceLB).
 - [ ] **TLS / HTTPS** — cert-manager for external Overseerr access.
 - [ ] **Image pinning** — replace `latest` tags + Renovate automation.
 - [ ] **Monitoring** — Prometheus + Grafana as a new Argo app.
