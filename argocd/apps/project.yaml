@@ -1,0 +1,26 @@
+# AppProject that scopes the media stack. Deliberately permissive — this is a
+# single-tenant homelab, so the value here is organizational grouping and a clear
+# blast-radius boundary, not multi-tenant lockdown. Tighten sourceRepos/destinations
+# if you ever share this Argo instance across teams.
+#
+# sync-wave -1 ensures the project is created before the Applications that reference it.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: media
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: Self-hosted Plex/Jellyfin media stack
+  sourceRepos:
+    - "*"
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

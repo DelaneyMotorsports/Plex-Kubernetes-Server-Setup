@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Full bootstrap of the media stack on a fresh cluster.
-# Run this once on initial setup. For subsequent changes, use:
-#   kubectl apply -k k8s/overlays/pi5/
+# Direct (non-GitOps) apply of the media stack to a cluster you already have.
+#
+# The RECOMMENDED path is Ansible + Argo CD (see install.sh / ansible/), which deploys
+# this same stack and then keeps it self-healing. Use this script only when you want a
+# one-shot kubectl apply without Argo — e.g. for local testing.
+#
+# For subsequent changes in this mode:  kubectl apply -k k8s/overlays/pi5/
 set -euo pipefail
 
 OVERLAY="${1:-pi5}"
@@ -30,13 +34,20 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
-for file in k8s/base/storage/media-pv.yaml k8s/overlays/${OVERLAY}/node-selector-patch.yaml; do
-  if grep -q "CHANGE-ME-NODE-NAME" "$file"; then
-    echo "Error: $file still has CHANGE-ME-NODE-NAME placeholder."
-    echo "       Run: kubectl get nodes -o name | cut -d/ -f2"
-    exit 1
-  fi
-done
+# Storage is now NFS from the NAS (no node affinity) — only the compute node-selector
+# patch still needs the node name filled in.
+NODE_PATCH="k8s/overlays/${OVERLAY}/node-selector-patch.yaml"
+if grep -q "CHANGE-ME-NODE-NAME" "$NODE_PATCH"; then
+  echo "Error: $NODE_PATCH still has CHANGE-ME-NODE-NAME placeholder."
+  echo "       Run: kubectl get nodes -o name | cut -d/ -f2"
+  exit 1
+fi
+
+# Remind about NAS wiring (non-fatal — the default may already be correct).
+if grep -q "192.168.1.50" "k8s/overlays/${OVERLAY}/nas-patch.yaml" 2>/dev/null; then
+  echo "Note: k8s/overlays/${OVERLAY}/nas-patch.yaml still uses the sample NAS IP 192.168.1.50."
+  echo "      Edit it to your NAS LAN IP + export path if that isn't right."
+fi
 
 # ── 3. Create namespace
 echo "==> Creating namespace: $NAMESPACE"
@@ -52,7 +63,7 @@ kubectl apply -k "k8s/overlays/${OVERLAY}/"
 
 # ── 6. Wait for deployments
 echo "==> Waiting for all deployments to be ready (this may take a few minutes)..."
-deployments=(gluetun-qbittorrent prowlarr sonarr radarr bazarr overseerr plex flaresolverr)
+deployments=(gluetun-qbittorrent prowlarr sonarr radarr bazarr overseerr plex)
 for deploy in "${deployments[@]}"; do
   echo "    Waiting for $deploy..."
   kubectl rollout status deployment/"$deploy" -n "$NAMESPACE" --timeout=5m || {

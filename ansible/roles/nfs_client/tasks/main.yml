@@ -1,0 +1,20 @@
+---
+# nfs-common/nfs-utils is installed by the common role. Here we only verify the node
+# can actually see the NAS export — a fast fail-early check so a broken NAS surfaces
+# during provisioning instead of as CrashLooping pods later. Non-fatal by design:
+# the NAS may legitimately not be up yet on first provision.
+- name: Query NFS exports on the NAS (non-fatal)
+  ansible.builtin.command: "showmount -e {{ nas_ip }}"
+  register: nfs_check
+  changed_when: false
+  failed_when: false
+
+- name: Report NAS reachability
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'OK — NAS ' + nas_ip + ' exports:\n' + nfs_check.stdout
+         if nfs_check.rc == 0
+         else 'WARNING: could not list NFS exports on ' + nas_ip + ' (rc='
+              + (nfs_check.rc | string) + '). Make sure the NAS is exporting '
+              + nas_export_path + ' (owned by ' + (puid | string) + ':' + (pgid | string)
+              + ') before the media pods start.' }}

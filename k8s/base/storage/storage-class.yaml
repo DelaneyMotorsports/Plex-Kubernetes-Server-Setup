@@ -1,10 +1,11 @@
-# StorageClass for media/downloads volumes that live on a specific host drive.
-# Dynamic provisioning is disabled — you define PVs manually pointing to your mount.
-# Config volumes use the cluster default (local-path on K3s).
+# StorageClass for the NFS-backed media/downloads volume served by the NAS (the "Nomad" box).
+# Static provisioning — the PV in media-pv.yaml is defined manually and bound by the PVC.
+# No CSI driver required: the in-tree NFS mounter (kubelet + nfs-common on the node) handles it.
+# Config volumes use the cluster default (local-path on K3s), not this class.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: media-local
+  name: media-nfs
 provisioner: kubernetes.io/no-provisioner
-volumeBindingMode: WaitForFirstConsumer
+volumeBindingMode: Immediate      # NFS has no node affinity — bind immediately
 reclaimPolicy: Retain

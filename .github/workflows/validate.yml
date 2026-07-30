@@ -1,0 +1,61 @@
+name: validate
+
+# A bad manifest merged to main would be auto-applied by Argo CD, so validate every
+# change before it lands: build the Kustomize overlays, schema-check the output, and
+# syntax/lint the Ansible.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  manifests:
+    name: Kustomize build + kubeconform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kustomize + kubeconform
+        run: |
+          curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+          curl -sSL "https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz" | tar -xz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Build & schema-check every overlay
+        run: |
+          set -euo pipefail
+          for overlay in k8s/overlays/*/; do
+            echo "== building $overlay =="
+            kustomize build "$overlay" \
+              | kubeconform -strict -ignore-missing-schemas -summary \
+                  -schema-location default
+          done
+
+      - name: Schema-check Argo CD manifests
+        run: |
+          set -euo pipefail
+          kubeconform -ignore-missing-schemas -summary argocd/root.yaml argocd/apps/
+
+  ansible:
+    name: Ansible syntax + lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install ansible + ansible-lint
+        run: pip install --quiet ansible ansible-lint
+
+      - name: Playbook syntax check
+        working-directory: ansible
+        run: |
+          ansible-playbook -i inventory/hosts.yml site.yml --syntax-check
+          ansible-playbook -i inventory/hosts.yml add-node.yml --syntax-check
+
+      - name: ansible-lint (advisory)
+        working-directory: ansible
+        run: ansible-lint || true

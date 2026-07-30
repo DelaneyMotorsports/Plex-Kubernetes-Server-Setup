@@ -22,6 +22,7 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch   # don't recursively chown the huge NFS tree every restart
       containers:
       - name: bazarr
         image: lscr.io/linuxserver/bazarr:latest
@@ -34,8 +35,9 @@ spec:
         volumeMounts:
         - name: config
           mountPath: /config
-        - name: media
+        - name: media-nfs
           mountPath: /media
+          subPath: media
         startupProbe:
           httpGet:
             path: /
@@ -66,6 +68,6 @@ spec:
       - name: config
         persistentVolumeClaim:
           claimName: bazarr-config-pvc
-      - name: media
+      - name: media-nfs
         persistentVolumeClaim:
-          claimName: media-library-pvc
+          claimName: media-nfs-pvc

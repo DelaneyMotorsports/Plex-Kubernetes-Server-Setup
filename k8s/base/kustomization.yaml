@@ -6,8 +6,10 @@ namespace: media
 resources:
   - namespace.yaml
   - configmap.yaml
+  - sealed-secret.yaml
   - network-policies.yaml
   - storage/
+  - backup/
   - gluetun-qbittorrent/
   - prowlarr/
   - sonarr/

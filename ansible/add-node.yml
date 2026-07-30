@@ -1,0 +1,15 @@
+# ── add-node.yml — join a new worker to the cluster in one command ────────────
+# 1. Add the machine under [k3s_agent] in inventory/hosts.yml (name + ansible_host)
+# 2. Run:  ansible-playbook add-node.yml -e target=<hostname>
+#
+# The play reads the server's node-token automatically and joins the agent. NFS +
+# OS prep are applied too, so the new node can run any media pod immediately.
+---
+- name: Join new K3s agent node(s)
+  hosts: "{{ target | default('k3s_agent') }}"
+  become: true
+  roles:
+    - common
+    - nfs_client
+    - k3s_agent
+    - node_labels

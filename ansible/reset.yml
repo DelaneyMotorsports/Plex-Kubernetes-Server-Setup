@@ -1,0 +1,29 @@
+# ── reset.yml — tear K3s off the boxes (DESTRUCTIVE) ──────────────────────────
+# Removes K3s and all cluster state from the targeted hosts. Media on the NAS is
+# untouched (it lives on the Nomad box). Use to re-provision from scratch:
+#   ansible-playbook reset.yml           # all hosts
+#   ansible-playbook reset.yml -e target=plex-box
+---
+- name: Uninstall K3s
+  hosts: "{{ target | default('all') }}"
+  become: true
+  tasks:
+    - name: Check for server uninstall script
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s-uninstall.sh
+      register: server_uninstall
+
+    - name: Run K3s server uninstall
+      ansible.builtin.command: /usr/local/bin/k3s-uninstall.sh
+      when: server_uninstall.stat.exists
+      changed_when: true
+
+    - name: Check for agent uninstall script
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s-agent-uninstall.sh
+      register: agent_uninstall
+
+    - name: Run K3s agent uninstall
+      ansible.builtin.command: /usr/local/bin/k3s-agent-uninstall.sh
+      when: agent_uninstall.stat.exists
+      changed_when: true

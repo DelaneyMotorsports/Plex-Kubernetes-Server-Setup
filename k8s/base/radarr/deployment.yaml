@@ -22,6 +22,7 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch   # don't recursively chown the huge NFS tree every restart
       containers:
       - name: radarr
         image: lscr.io/linuxserver/radarr:latest
@@ -34,10 +35,12 @@ spec:
         volumeMounts:
         - name: config
           mountPath: /config
-        - name: media
+        - name: media-nfs
           mountPath: /media
-        - name: downloads
+          subPath: media
+        - name: media-nfs
           mountPath: /downloads
+          subPath: downloads
         startupProbe:
           httpGet:
             path: /ping
@@ -68,9 +71,6 @@ spec:
       - name: config
         persistentVolumeClaim:
           claimName: radarr-config-pvc
-      - name: media
+      - name: media-nfs
         persistentVolumeClaim:
-          claimName: media-library-pvc
-      - name: downloads
-        persistentVolumeClaim:
-          claimName: downloads-pvc
+          claimName: media-nfs-pvc

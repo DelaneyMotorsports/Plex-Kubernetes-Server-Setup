@@ -1,36 +1,21 @@
-# Shared data PVCs (bind to the manually-created media-local PVs)
+# Shared media/downloads claim — one RWX NFS volume from the NAS (see media-pv.yaml).
+# Both /media and /downloads are subPaths of this single claim so hardlinks work.
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: media-library-pvc
+  name: media-nfs-pvc
   namespace: media
   labels:
     app.kubernetes.io/part-of: media-stack
 spec:
   accessModes:
-  - ReadWriteOnce
-  storageClassName: media-local
-  volumeName: media-library-pv
+  - ReadWriteMany
+  storageClassName: media-nfs
+  volumeName: media-nfs-pv
   resources:
     requests:
-      storage: 2Ti
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: downloads-pvc
-  namespace: media
-  labels:
-    app.kubernetes.io/part-of: media-stack
-spec:
-  accessModes:
-  - ReadWriteOnce
-  storageClassName: media-local
-  volumeName: downloads-pv
-  resources:
-    requests:
-      storage: 500Gi
+      storage: 100Ti
 ---
 # Config PVCs — dynamically provisioned by the cluster default (local-path on K3s)
 apiVersion: v1

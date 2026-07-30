@@ -43,8 +43,10 @@ spec:
         volumeMounts:
         - name: config
           mountPath: /config
-        - name: media
+        - name: media-nfs
           mountPath: /media
+          subPath: media
+          readOnly: true          # Plex only reads the library; writes go via the *arr apps
         - name: transcode
           mountPath: /transcode
 
@@ -87,9 +89,9 @@ spec:
       - name: config
         persistentVolumeClaim:
           claimName: plex-config-pvc
-      - name: media
+      - name: media-nfs
         persistentVolumeClaim:
-          claimName: media-library-pvc
+          claimName: media-nfs-pvc
       - name: transcode
         emptyDir: {}               # Ephemeral — transcodes are transient by nature
 

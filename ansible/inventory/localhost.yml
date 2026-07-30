@@ -1,0 +1,10 @@
+# Local inventory for the on-box one-line installer (install.sh runs Ansible against
+# this machine itself). For remote fleet management from a workstation, use hosts.yml.
+all:
+  children:
+    k3s_server:
+      hosts:
+        localhost:
+          ansible_connection: local
+    k3s_agent:
+      hosts: {}

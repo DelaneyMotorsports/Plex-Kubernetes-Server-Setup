@@ -1,0 +1,48 @@
+---
+- name: Ensure argocd namespace exists
+  ansible.builtin.shell: |
+    k3s kubectl create namespace argocd --dry-run=client -o yaml | k3s kubectl apply -f -
+  args:
+    executable: /bin/bash
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  changed_when: false
+
+- name: Install Argo CD
+  ansible.builtin.command: >
+    k3s kubectl apply -n argocd -f
+    https://raw.githubusercontent.com/argoproj/argo-cd/{{ argocd_version }}/manifests/install.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: argo_install
+  changed_when: "'created' in argo_install.stdout or 'configured' in argo_install.stdout"
+
+- name: Wait for the Argo CD server to be Available
+  ansible.builtin.command: >
+    k3s kubectl -n argocd rollout status deploy/argocd-server --timeout=300s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  changed_when: false
+
+# The ONE imperative bootstrap. After this, the root App-of-Apps pulls everything
+# else from Git and keeps it reconciled — no further kubectl needed.
+- name: Render the root App-of-Apps manifest
+  ansible.builtin.template:
+    src: root-app.yaml.j2
+    dest: /tmp/argocd-root-app.yaml
+    mode: "0644"
+
+- name: Apply the root App-of-Apps
+  ansible.builtin.command: k3s kubectl apply -f /tmp/argocd-root-app.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: root_apply
+  changed_when: "'created' in root_apply.stdout or 'configured' in root_apply.stdout"
+
+- name: Show how to reach the Argo CD UI
+  ansible.builtin.debug:
+    msg:
+      - "Argo CD installed. Get the initial admin password with:"
+      - "  kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
+      - "Then port-forward (or reach it over Tailscale):"
+      - "  kubectl -n argocd port-forward svc/argocd-server 8080:443"

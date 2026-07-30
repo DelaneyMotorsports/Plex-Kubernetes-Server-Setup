@@ -111,3 +111,34 @@ spec:
         - 10.0.0.0/8
         - 172.16.0.0/12
         - 192.168.0.0/16
+---
+# Allow egress to the NAS (Nomad box) for NFS. The kubelet on the host performs the
+# actual mount so pod-level policy usually doesn't gate it — this is belt-and-suspenders
+# for CSI/in-pod mount helpers and keeps the intent explicit. Scoped to NFS ports on
+# private ranges (the internet-egress policy above deliberately excludes RFC1918).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-nfs-egress
+  namespace: media
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 10.0.0.0/8
+    - ipBlock:
+        cidr: 172.16.0.0/12
+    - ipBlock:
+        cidr: 192.168.0.0/16
+    ports:
+    - port: 2049      # NFSv4 / NFSv3 data
+      protocol: TCP
+    - port: 2049
+      protocol: UDP
+    - port: 111       # rpcbind / portmapper (NFSv3)
+      protocol: TCP
+    - port: 111
+      protocol: UDP

@@ -22,6 +22,7 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch   # don't recursively chown the huge NFS tree every restart
       containers:
       - name: unpackerr
         image: golift/unpackerr:latest
@@ -40,8 +41,9 @@ spec:
         volumeMounts:
         - name: config
           mountPath: /etc/unpackerr
-        - name: downloads
+        - name: media-nfs
           mountPath: /downloads
+          subPath: downloads
         resources:
           requests:
             cpu: "50m"
@@ -53,6 +55,6 @@ spec:
       - name: config
         persistentVolumeClaim:
           claimName: unpackerr-config-pvc
-      - name: downloads
+      - name: media-nfs
         persistentVolumeClaim:
-          claimName: downloads-pvc
+          claimName: media-nfs-pvc
