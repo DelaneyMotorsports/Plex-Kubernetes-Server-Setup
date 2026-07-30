@@ -1,0 +1,47 @@
+---
+- name: Install base packages (Debian family)
+  ansible.builtin.apt:
+    name:
+      - curl
+      - nfs-common
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Install base packages (RedHat family)
+  ansible.builtin.dnf:
+    name:
+      - curl
+      - nfs-utils
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Set system timezone
+  ansible.builtin.command: "timedatectl set-timezone {{ timezone }}"
+  register: tz_set
+  changed_when: false
+  failed_when: false
+
+# ── Raspberry Pi: K3s requires the memory cgroup, which Pi OS ships disabled ──
+- name: Enable memory cgroup in the Pi boot cmdline (idempotent)
+  ansible.builtin.shell: |
+    set -e
+    f="{{ item }}"
+    if [ -f "$f" ] && ! grep -q 'cgroup_enable=memory' "$f"; then
+      sed -i '1 s/$/ cgroup_memory=1 cgroup_enable=memory/' "$f"
+      echo CHANGED
+    fi
+  args:
+    executable: /bin/bash
+  loop:
+    - /boot/firmware/cmdline.txt
+    - /boot/cmdline.txt
+  register: rpi_cgroup
+  changed_when: "'CHANGED' in (rpi_cgroup.stdout | default(''))"
+
+- name: Reboot to apply cgroup change (Raspberry Pi, first provision only)
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+  when: rpi_cgroup.results | selectattr('stdout', 'defined')
+        | selectattr('stdout', 'search', 'CHANGED') | list | length > 0

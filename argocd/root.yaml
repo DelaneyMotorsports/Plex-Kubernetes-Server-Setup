@@ -1,0 +1,39 @@
+# Root App-of-Apps — the GitOps entrypoint.
+#
+# Ansible applies this once during provisioning (it renders the same content from
+# inventory/group_vars/all.yml). You can also apply it by hand on an existing cluster:
+#   kubectl apply -f argocd/root.yaml
+#
+# It watches argocd/apps/ and deploys every child Application + the AppProject found
+# there. To add a new app to the cluster later, drop a manifest into argocd/apps/ and
+# commit — Argo picks it up automatically. No kubectl, no Ansible re-run.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/DelaneyMotorsports/Plex-Kubernetes-Server-Setup.git
+    targetRevision: main
+    path: argocd/apps
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

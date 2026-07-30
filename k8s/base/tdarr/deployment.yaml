@@ -22,6 +22,7 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch   # don't recursively chown the huge NFS tree every restart
       containers:
       - name: tdarr
         image: ghcr.io/haveagitgat/tdarr:latest
@@ -53,8 +54,9 @@ spec:
           mountPath: /app/configs
         - name: logs
           mountPath: /app/logs
-        - name: media
+        - name: media-nfs
           mountPath: /media
+          subPath: media
         - name: transcode-cache
           mountPath: /temp
         startupProbe:
@@ -91,8 +93,8 @@ spec:
       - name: logs
         persistentVolumeClaim:
           claimName: tdarr-logs-pvc
-      - name: media
+      - name: media-nfs
         persistentVolumeClaim:
-          claimName: media-library-pvc
+          claimName: media-nfs-pvc
       - name: transcode-cache
         emptyDir: {}

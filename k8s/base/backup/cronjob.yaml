@@ -1,0 +1,62 @@
+# Nightly disaster-recovery backup of app config (Plex DB, *arr configs, etc.).
+#
+# App configs stay on the node's local-path storage on purpose — SQLite over NFS has
+# locking problems. This job snapshots ALL of that local-path data in one shot (via a
+# single hostPath over the K3s storage dir) and writes a rotated tarball to the NAS over
+# NFS. That closes the self-healing loop: if the node is reimaged, `ansible-playbook
+# site.yml` rebuilds it, Argo repaints the apps, and the latest config tarball is waiting
+# on the NAS to restore.
+#
+# Single-node note: this backs up config volumes present on the node it runs on. On a
+# multi-node cluster, run one job per node (add a nodeSelector) or switch to a
+# volume-snapshot approach.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: config-backup
+  namespace: media
+  labels:
+    app.kubernetes.io/name: config-backup
+    app.kubernetes.io/part-of: media-stack
+    app.kubernetes.io/component: backup
+spec:
+  schedule: "0 3 * * *"          # 03:00 daily
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: busybox:1.36
+            command: ["/bin/sh", "-c"]
+            args:
+              - |
+                set -e
+                TS=$(date +%Y%m%d-%H%M%S)
+                DEST=/backup/config
+                mkdir -p "$DEST"
+                echo "Backing up local-path config volumes -> $DEST/config-$TS.tgz"
+                tar czf "$DEST/config-$TS.tgz" -C /local-path .
+                echo "Rotating: keeping the 7 most recent backups"
+                ls -1t "$DEST"/config-*.tgz | tail -n +8 | xargs -r rm -f
+                echo "Backup complete: $(ls -lh "$DEST/config-$TS.tgz")"
+            volumeMounts:
+            - name: local-path
+              mountPath: /local-path
+              readOnly: true
+            - name: media-nfs
+              mountPath: /backup
+              subPath: backups
+          volumes:
+          - name: local-path
+            hostPath:
+              path: /var/lib/rancher/k3s/storage    # K3s local-path provisioner data
+              type: DirectoryOrCreate
+          - name: media-nfs
+            persistentVolumeClaim:
+              claimName: media-nfs-pvc

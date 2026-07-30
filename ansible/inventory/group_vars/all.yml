@@ -1,0 +1,36 @@
+# ── Cluster-wide configuration ───────────────────────────────────────────────
+# One place to tune versions, the NAS, and feature flags for the whole fleet.
+
+# ---- K3s ----
+k3s_version: "v1.31.5+k3s1"
+# Disable the bundled Traefik: the media Ingress objects use ingressClassName: nginx, so we
+# install ingress-nginx instead (see the ingress_nginx role). ServiceLB (klipper) stays on.
+k3s_server_args:
+  - "--disable=traefik"
+
+# ---- NAS (the "Nomad" box) ----
+# Used for the (non-fatal) reachability check and the docs. The PV itself is set in
+# k8s/overlays/pi5/nas-patch.yaml — keep these two in sync.
+nas_ip: "192.168.1.50"
+nas_export_path: "/export/media"
+
+# ---- Locale / ownership ----
+timezone: "America/New_York"
+puid: 1000
+pgid: 1000
+
+# ---- GitOps: the repo Argo CD continuously reconciles ----
+gitops_repo_url: "https://github.com/DelaneyMotorsports/Plex-Kubernetes-Server-Setup.git"
+gitops_repo_revision: "main"
+gitops_overlay_path: "k8s/overlays/pi5"
+
+# ---- Component versions (pinned for reproducible rebuilds) ----
+argocd_version: "v2.13.2"
+sealed_secrets_version: "v0.27.1"
+ingress_nginx_version: "controller-v1.11.3"
+
+# ---- Remote access (optional) ----
+enable_tailscale: false
+# Provide at runtime, do NOT commit a real key:
+#   ansible-playbook site.yml -e enable_tailscale=true -e tailscale_authkey=tskey-auth-xxxx
+tailscale_authkey: ""

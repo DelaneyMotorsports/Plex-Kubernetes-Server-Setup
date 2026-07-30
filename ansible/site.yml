@@ -1,0 +1,32 @@
+# ── site.yml — turn bare boxes into a running, self-healing cluster ───────────
+# Usage:
+#   ansible-playbook site.yml
+#   ansible-playbook site.yml -e enable_tailscale=true -e tailscale_authkey=tskey-...
+#
+# After this completes, Git is the source of truth: Argo CD reconciles the media
+# stack from the repo forever. You should not need kubectl again for normal ops.
+---
+- name: Control-plane — K3s server + GitOps bootstrap
+  hosts: k3s_server
+  become: true
+  roles:
+    - common          # OS prep, packages, timezone, Pi cgroups
+    - nfs_client       # NFS mount tooling + NAS reachability check
+    - k3s_server       # install K3s control plane
+    - ingress_nginx    # ingress controller the media Ingress objects require
+    - sealed_secrets   # controller so encrypted secrets in Git can be decrypted in-cluster
+    - argocd           # install Argo CD + apply the root App-of-Apps
+    - node_labels      # label the node (transcode capability, etc.)
+    - role: tailscale  # optional secure remote access
+      when: enable_tailscale | bool
+
+- name: Workers — K3s agents
+  hosts: k3s_agent
+  become: true
+  roles:
+    - common
+    - nfs_client
+    - k3s_agent
+    - node_labels
+    - role: tailscale
+      when: enable_tailscale | bool

@@ -1,0 +1,36 @@
+---
+- name: Check whether K3s is already installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/k3s
+  register: k3s_bin
+
+- name: Read the node-token from the control-plane node
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  delegate_to: "{{ groups['k3s_server'][0] }}"
+  become: true
+  register: server_token
+
+- name: Resolve the control-plane API endpoint
+  ansible.builtin.set_fact:
+    k3s_server_url: >-
+      https://{{ hostvars[groups['k3s_server'][0]].ansible_host
+                 | default(groups['k3s_server'][0]) }}:6443
+
+- name: Install K3s agent and join the cluster
+  ansible.builtin.shell: >
+    curl -sfL https://get.k3s.io |
+    INSTALL_K3S_VERSION="{{ k3s_version }}"
+    K3S_URL="{{ k3s_server_url }}"
+    K3S_TOKEN="{{ server_token.content | b64decode | trim }}"
+    sh -s - agent
+  args:
+    executable: /bin/bash
+  when: not k3s_bin.stat.exists
+  changed_when: true
+
+- name: Ensure K3s agent service is running and enabled
+  ansible.builtin.systemd:
+    name: k3s-agent
+    state: started
+    enabled: true

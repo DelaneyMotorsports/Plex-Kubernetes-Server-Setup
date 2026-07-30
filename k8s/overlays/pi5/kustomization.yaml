@@ -12,3 +12,5 @@ patches:
     target:
       kind: Deployment
       namespace: media
+  # Point the NFS PV at your NAS (edit nas-patch.yaml with your LAN IP + export path)
+  - path: nas-patch.yaml

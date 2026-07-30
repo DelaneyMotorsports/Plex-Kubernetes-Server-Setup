@@ -1,0 +1,19 @@
+---
+# Bitnami Sealed Secrets controller. This is what lets encrypted secrets live in Git:
+# scripts/seal-secrets.sh produces a SealedSecret, Argo applies it, and this controller
+# decrypts it into a real Secret in-cluster. A rebuilt node needs no manual secret entry.
+- name: Apply the Sealed Secrets controller
+  ansible.builtin.command: >
+    k3s kubectl apply -f
+    https://github.com/bitnami-labs/sealed-secrets/releases/download/{{ sealed_secrets_version }}/controller.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: ss_apply
+  changed_when: "'created' in ss_apply.stdout or 'configured' in ss_apply.stdout"
+
+- name: Wait for the Sealed Secrets controller to be Available
+  ansible.builtin.command: >
+    k3s kubectl -n kube-system rollout status deploy/sealed-secrets-controller --timeout=180s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  changed_when: false

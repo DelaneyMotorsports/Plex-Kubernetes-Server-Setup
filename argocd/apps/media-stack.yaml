@@ -1,0 +1,37 @@
+# The media stack Application — this is the self-healing engine.
+#
+# It tracks k8s/overlays/pi5 (Kustomize) and continuously reconciles the cluster to it:
+#   • selfHeal: true  → any manual/drift change to a live resource is reverted to Git
+#   • prune: true     → resources deleted from Git are deleted from the cluster
+#   • retry backoff   → transient sync failures retry automatically
+# Result: change = git commit; rollback = git revert; the cluster follows Git with no
+# human intervention.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: media-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: media
+  source:
+    repoURL: https://github.com/DelaneyMotorsports/Plex-Kubernetes-Server-Setup.git
+    targetRevision: main
+    path: k8s/overlays/pi5
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: media
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

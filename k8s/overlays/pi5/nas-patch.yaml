@@ -1,0 +1,12 @@
+# ── Set your NAS (Nomad box) connection details here ─────────────────────────
+# This is the ONE place to edit for storage. Commit the change — a private LAN IP
+# is not a secret, and keeping it in the overlay is the GitOps-correct pattern
+# (environment-specific values live in the environment overlay, not the base).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: media-nfs-pv
+spec:
+  nfs:
+    server: 192.168.1.50     # <-- EDIT: your NAS LAN IP
+    path: /export/media      # <-- EDIT: the exported dir on the NAS (holds media/ and downloads/)

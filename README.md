@@ -1,83 +1,155 @@
 # Plex Kubernetes Media Stack
 
-A self-hosted media stack that runs on a Raspberry Pi 5, a spare x86 box, or any cloud VM. Plex, automated downloading, VPN-isolated torrenting, and subtitle management — all on Kubernetes, all self-contained.
+A self-hosted media stack managed like production infrastructure: **Ansible** provisions the
+machines, **Argo CD** runs the workloads via GitOps, and a dedicated **NAS** serves the media over
+NFS. Plex, automated downloading, VPN-isolated torrenting, and subtitle management — declarative,
+remotely manageable, and self-healing.
 
-## One-Line Install
+Two layers, cleanly separated:
 
-```bash
-curl -sSL https://raw.githubusercontent.com/DelaneyMotorsports/Plex-Kubernetes-Server-Setup/main/install.sh | bash
+- **Ansible** owns the machines (Day 0–1): OS prep, K3s, NFS client, and the one-time bootstrap of
+  Argo CD + Sealed Secrets. Adding a node is one command.
+- **Argo CD** owns the workloads (Day 2–forever): it continuously reconciles the cluster to this
+  Git repo. Drift is reverted automatically, rollbacks are `git revert`, and a rebuilt node repaints
+  itself from Git with no human intervention.
+
+Bulk media lives on a **separate NAS box** ("Nomad") and is mounted into the cluster over NFS, so the
+compute nodes stay disposable and the library survives any node being reimaged.
+
+---
+
+## Topology
+
 ```
+┌───────────────────────────┐        NFS (RWX, hardlink-capable)        ┌────────────────────────┐
+│   NAS  ("Nomad" box)       │◄──────────────────────────────────────────│  Plex box (K3s)        │
+│   /export/media            │                                            │  Pi 5 / x86 / VM       │
+│     ├── media/{tv,movies}  │        media pods mount:                   │                        │
+│     └── downloads/         │          /media      (subPath: media)      │  Plex · Sonarr · Radarr│
+│   (owned by 1000:1000)     │          /downloads  (subPath: downloads)  │  Prowlarr · Bazarr ... │
+└───────────────────────────┘                                            └────────────────────────┘
+        one NFS export, media + downloads under one root  ⇒  instant hardlink imports
 
-The installer handles everything interactively: installs K3s, sets up ingress, prompts for your VPN keys and Plex token, mounts your drive, and deploys the full stack. Takes about 5 minutes on a fresh Pi 5.
-
-> **Want to review the script first?** `curl -sSL ...install.sh | less` — we encourage it.
-
-**Automation / CI** — pre-set env vars to skip prompts:
-
-```bash
-export WIREGUARD_PRIVATE_KEY="your-key"
-export WIREGUARD_ADDRESSES="10.5.0.2/32"
-export PLEX_CLAIM="claim-xxxxxx"
-export TZ="America/Chicago"
-curl -sSL https://raw.githubusercontent.com/DelaneyMotorsports/Plex-Kubernetes-Server-Setup/main/install.sh | bash
+Managed by:
+  ansible/   ──►  provisions the Plex box: K3s + Sealed Secrets + Argo CD
+  argocd/    ──►  root App-of-Apps ─► media-stack Application (selfHeal + prune)
+  k8s/       ──►  the Kubernetes manifests Argo continuously applies
 ```
 
 ---
 
-## Why Kubernetes Instead of Docker Compose
+## How it stays healthy (no human intervention)
 
-| | Docker Compose | Kubernetes (K3s) |
+| Failure | Who heals it | You do |
 |---|---|---|
-| Self-healing | Manual restart policies | Pod controller auto-restarts |
-| Rolling updates | Stop → pull → start | Zero-downtime rollout |
-| Resource limits | Optional, rarely enforced | Enforced per container |
-| Secrets | `.env` files on disk | Kubernetes Secrets (encrypted at rest in etcd) |
-| Network isolation | Docker networks | NetworkPolicies + namespace isolation |
-| Config management | Copy files between hosts | `kustomize` overlays per environment |
-| Future scale | Rewrite everything | Add nodes |
+| A pod crashes | K8s controller restarts it | nothing |
+| Someone hand-edits a live resource (drift) | Argo CD `selfHeal` reverts it to Git | nothing |
+| You want a change | `git commit` → Argo syncs | commit |
+| A change was bad | `git revert` → Argo rolls back | revert |
+| The whole box dies / is reimaged | `ansible-playbook site.yml` rebuilds K3s+Argo → Argo repaints every app from Git; media is intact on the NAS; app configs restore from the nightly NAS backup | one command |
+| You need more capacity | `ansible-playbook add-node.yml -e target=<host>` | one command |
 
 ---
 
-## Architecture
+## Install
 
-```
-                          ┌──────────────────────────────────────────┐
-                          │           media namespace                 │
-                          │                                           │
-  LAN / Browser ──────────┤─► Overseerr :5055  (request portal)      │
-                          │       │                                   │
-                          │       ├──► Sonarr :8989  (TV)            │
-                          │       └──► Radarr :7878  (Movies)        │
-                          │               │           │               │
-                          │               └─────┬─────┘              │
-                          │                     ▼                     │
-                          │              Prowlarr :9696               │
-                          │              (indexer aggregator)         │
-                          │                                           │
-                          │  ┌─── Pod: gluetun + qbittorrent ──────┐ │
-                          │  │  Gluetun (WireGuard VPN)            │ │
-                          │  │     ↕  shared network namespace      │ │
-                          │  │  qBittorrent :8080                  │ │
-                          │  └─────────────────────────────────────┘ │
-                          │                     │                     │
-                          │       ┌─────────────┴─────────────┐      │
-                          │       ▼                             ▼      │
-                          │  /downloads PVC             /media PVC    │
-                          │       │                             │      │
-                          │  Sonarr / Radarr ──────► Plex :32400     │
-                          │                           Bazarr :6767    │
-                          └──────────────────────────────────────────┘
+### One-line (on the Plex box itself)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/DelaneyMotorsports/Plex-Kubernetes-Server-Setup/main/install.sh | bash
 ```
 
-### Key Design Decisions
+The installer is a thin bootstrap: it installs Ansible + git, clones the repo, and runs
+`ansible/site.yml` against the local machine. That brings up K3s, the Sealed Secrets controller, and
+Argo CD, then Argo takes over deploying the media stack from Git.
 
-**Gluetun + qBittorrent as a sidecar pod.** Both containers share the pod's network namespace. All qBittorrent traffic physically cannot leave except through the WireGuard tunnel — no routing rules needed. A `wait-for-vpn` init container blocks qBittorrent from starting until Gluetun reports a connected VPN IP.
+> **Review it first?** `curl -sSL ...install.sh | less` — encouraged.
 
-**No Cloudflare dependencies.** This stack has zero Cloudflare involvement: no Cloudflare Tunnel, no WARP, no Cloudflare-proxied domains. Your traffic goes directly from your device, through your VPN, to wherever you point it. Privacy and freedom are the baseline, not an add-on.
+Pass config through env vars to skip interaction:
 
-**Prowlarr replaces Jackett.** Prowlarr syncs indexer configs directly into Sonarr and Radarr via their APIs — no per-app indexer duplication.
+```bash
+export NAS_IP="192.168.1.50" NAS_EXPORT_PATH="/export/media"
+export GITOPS_REPO_URL="https://github.com/<you>/Plex-Kubernetes-Server-Setup.git"
+curl -sSL https://raw.githubusercontent.com/DelaneyMotorsports/Plex-Kubernetes-Server-Setup/main/install.sh | bash
+```
 
-**ReadWriteOnce on a single node.** Multiple pods (Sonarr, Radarr, Bazarr, Plex) share the same `media-library-pvc`. On a single-node cluster, `ReadWriteOnce` means "one node," not "one pod" — all pods on the same node can mount it. Multi-node clusters need NFS or Longhorn (documented in Roadmap).
+### Remote (manage a fleet from your workstation — the IT-pro path)
+
+```bash
+git clone https://github.com/DelaneyMotorsports/Plex-Kubernetes-Server-Setup.git
+cd Plex-Kubernetes-Server-Setup/ansible
+
+# 1. Describe your machine(s)
+$EDITOR inventory/hosts.yml            # set ansible_host + SSH user
+$EDITOR inventory/group_vars/all.yml   # NAS IP/export, versions, feature flags
+
+# 2. Provision everything
+ansible-playbook site.yml
+# optional secure remote access:
+ansible-playbook site.yml -e enable_tailscale=true -e tailscale_authkey=tskey-auth-xxxx
+```
+
+### Finish (two commits, both picked up by Argo)
+
+```bash
+# a) Point storage at your NAS
+$EDITOR k8s/overlays/pi5/nas-patch.yaml   # server = NAS LAN IP, path = export
+# b) Seal your secrets into Git (encrypted, safe to commit)
+cp .env.example .env && $EDITOR .env      # WireGuard keys, Plex claim
+./scripts/seal-secrets.sh .env            # writes k8s/base/sealed-secret.yaml
+git commit -am "configure NAS + secrets" && git push
+```
+
+Argo CD reconciles both within its sync window — no `kubectl apply` needed.
+
+---
+
+## The NAS (Nomad box)
+
+Media lives on a **separate machine** running as a NAS. This repo does not manage that box; it only
+mounts it. Requirements:
+
+- Export **one directory** (e.g. `/export/media`) that contains both `media/` (with `tv/`, `movies/`,
+  `music/`) and `downloads/` (with `complete/`, `incomplete/`). Keeping them under one export is what
+  makes Sonarr/Radarr imports **instant hardlinks** instead of slow, space-doubling copies.
+- Own the export as **UID:GID `1000:1000`** (matches `PUID`/`PGID` in `k8s/base/configmap.yaml`) and
+  export it so writes as that user succeed — e.g. `no_root_squash`, or `all_squash` with
+  `anonuid=1000,anongid=1000`.
+- Any filesystem is fine (ext4/XFS/etc.) — redundancy is the NAS's concern, not this repo's.
+
+Set the cluster's view of it in `k8s/overlays/pi5/nas-patch.yaml` (the one place to edit for storage).
+
+---
+
+## Why Kubernetes (K3s) + GitOps instead of Docker Compose
+
+| | Docker Compose | This stack (K3s + Argo CD) |
+|---|---|---|
+| Self-healing | Manual restart policies | Controllers restart pods **and** Argo reverts drift |
+| Config source of truth | Files copied between hosts | Git — audited, revertable |
+| Rolling updates | Stop → pull → start | Zero-downtime rollout |
+| Secrets | `.env` on disk | Sealed Secrets (encrypted, in Git) |
+| Network isolation | Docker networks | NetworkPolicies + namespace isolation |
+| Rebuild a dead host | Re-run everything by hand | `ansible-playbook site.yml`, Argo repaints |
+| Add a node | Rewire compose/hosts | `ansible-playbook add-node.yml` |
+
+### Key design decisions
+
+**Single NFS export, mounted via subPath.** `media-nfs-pvc` (ReadWriteMany) is mounted as
+`/media` (`subPath: media`) and `/downloads` (`subPath: downloads`). Both are the same underlying
+filesystem, so hardlinks/atomic-moves work across them. RWX also means pods can run on **any** node —
+the storage no longer pins the cluster to one machine.
+
+**App config stays local, backed up to the NAS.** Config volumes (Plex DB, *arr configs — all SQLite)
+use the node's local-path storage, because SQLite over NFS has locking problems. A nightly CronJob
+(`k8s/base/backup/`) tars that data to the NAS, so a reimaged node restores from the latest snapshot.
+
+**Gluetun + qBittorrent share a pod network namespace.** All qBittorrent traffic physically cannot
+leave except through the WireGuard tunnel — no routing rules. A `wait-for-vpn` init container blocks
+qBittorrent until Gluetun reports a connected VPN IP.
+
+**No Cloudflare dependencies.** No Tunnel, no WARP, no proxied domains. Remote access is via Tailscale
+(optional) or your own network.
 
 ---
 
@@ -85,175 +157,139 @@ curl -sSL https://raw.githubusercontent.com/DelaneyMotorsports/Plex-Kubernetes-S
 
 | Service | Port | Purpose |
 |---|---|---|
-| Plex | 32400 | Media server — streams to all clients |
+| Plex | 32400 | Media server — streams to all clients (mounts media read-only) |
 | Sonarr | 8989 | TV series automation |
 | Radarr | 7878 | Movie automation |
 | Prowlarr | 9696 | Indexer aggregator |
 | Bazarr | 6767 | Subtitle downloading |
 | Overseerr | 5055 | Request portal for family/friends |
 | qBittorrent | 8080 | Torrent client (VPN-isolated) |
-| Gluetun | — | WireGuard VPN gateway (NordVPN, no external ports) |
+| Gluetun | — | WireGuard VPN gateway |
+
+Plus a range of enrichment/maintenance apps (Tdarr, Janitorr, ErsatzTV, Recyclarr, Kometa, and more)
+under `k8s/base/`.
 
 ---
 
-## OS Options for Pi 5
+## Remote management
 
-The installer targets **Debian-family systems** (Raspberry Pi OS Lite 64-bit, Ubuntu, Debian). Pick your path:
-
-### Option A — Raspberry Pi OS Lite 64-bit (Recommended to start)
-Fastest path to a working stack. Flash with Raspberry Pi Imager, enable SSH, then run the one-liner. Non-immutable, but battle-tested on Pi hardware.
-
-### Option B — Talos Linux (Recommended for production / immutable)
-Purpose-built Kubernetes OS. No SSH, no shell, no package manager. Entirely API-driven. Pi 5 support since **Talos v1.7** (2024).
-
-```bash
-# 1. Flash the rpi_generic Talos image to your SD/USB
-#    Download: https://github.com/siderolabs/talos/releases
-#    File: metal-arm64.raw.xz  (write with: xz -dc *.xz | sudo dd of=/dev/sdX bs=4M)
-
-# 2. Bootstrap
-talosctl gen config media-cluster https://<PI_IP>:6443
-talosctl apply-config --insecure --nodes <PI_IP> --file controlplane.yaml
-talosctl bootstrap --nodes <PI_IP>
-talosctl kubeconfig --nodes <PI_IP> ~/.kube/config
-
-# 3. Run the installer pointing at the existing cluster (skip K3s install)
-export KUBECONFIG=~/.kube/config
-curl -sSL https://raw.githubusercontent.com/DelaneyMotorsports/Plex-Kubernetes-Server-Setup/main/install.sh | bash
-```
-
-**Gotchas:** Update Pi 5 EEPROM from Raspberry Pi OS before flashing Talos. Talos needs current firmware to boot on Pi 5.
-
-### Option C — Fedora IoT with K3s
-Atomic updates via `rpm-ostree`. Pi 5 support since Fedora 40. Same one-liner install once the OS is up.
+- **Argo CD UI** is the console. Get the admin password and reach it:
+  ```bash
+  kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo
+  kubectl -n argocd port-forward svc/argocd-server 8080:443
+  ```
+- **Tailscale** (optional, via the Ansible role) puts the Plex box on your tailnet, so the Argo UI and
+  every service are reachable from anywhere with no public ports exposed.
 
 ---
 
-## Manual / Custom Install
+## Post-install configuration
 
-If you want full control instead of the one-liner:
+After the pods are up, wire the apps together once via their web UIs:
 
-```bash
-git clone https://github.com/DelaneyMotorsports/Plex-Kubernetes-Server-Setup.git
-cd Plex-Kubernetes-Server-Setup
-
-cp .env.example .env
-# Fill in .env — VPN keys, Plex claim, timezone, etc.
-
-# Set your node name and storage paths
-NODE=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')
-sed -i "s/CHANGE-ME-NODE-NAME/$NODE/g" \
-  k8s/base/storage/media-pv.yaml \
-  k8s/overlays/pi5/node-selector-patch.yaml
-
-# Create secrets
-chmod +x scripts/*.sh
-./scripts/create-secrets.sh .env
-
-# Deploy
-kubectl apply -k k8s/overlays/pi5/
-
-# Check status
-./scripts/verify.sh
-```
-
----
-
-## Post-Install Configuration
-
-After first boot, wire the services together (one-time setup via their web UIs):
-
-1. **Prowlarr** — add your indexers
-2. **Sonarr** → Settings → Indexers → click "Sync App Indexers" (Prowlarr auto-pushes)
-3. **Sonarr** → Settings → Download Clients → Add qBittorrent → Host: `qbittorrent`, Port: `8080`
-4. **Radarr** — same as Sonarr
-5. **Bazarr** → Settings → Sonarr: `sonarr:8989`, Radarr: `radarr:7878`
-6. **Overseerr** → connect to Plex, Sonarr, Radarr
-
-**Plex claim:** Visit `http://plex.local:32400/web` and complete setup. Add library at `/media/tv` and `/media/movies`.
+1. **Prowlarr** — add indexers.
+2. **Sonarr/Radarr** — sync indexers from Prowlarr; add qBittorrent (host `qbittorrent`, port `8080`).
+3. **Bazarr** — connect to `sonarr:8989` and `radarr:7878`.
+4. **Overseerr** — connect to Plex, Sonarr, Radarr.
+5. **Plex** — complete setup at `http://plex.local:32400/web`; add libraries at `/media/tv` and
+   `/media/movies`.
 
 ---
 
 ## Access
 
-Add to `/etc/hosts` (or your local DNS/Pi-hole) on any device:
+Add to `/etc/hosts` (or your local DNS/Pi-hole):
 
 ```
-<PI_IP>  plex.local sonarr.local radarr.local prowlarr.local
-<PI_IP>  bazarr.local overseerr.local qbittorrent.local
+<PLEX_BOX_IP>  plex.local sonarr.local radarr.local prowlarr.local
+<PLEX_BOX_IP>  bazarr.local overseerr.local qbittorrent.local
 ```
 
-| Service | URL |
-|---|---|
-| Plex | http://plex.local:32400/web |
-| Sonarr | http://sonarr.local |
-| Radarr | http://radarr.local |
-| Prowlarr | http://prowlarr.local |
-| Bazarr | http://bazarr.local |
-| Overseerr | http://overseerr.local |
-| qBittorrent | http://qbittorrent.local |
+The apps are served over HTTP on port **80** by ingress-nginx, which K3s ServiceLB (klipper) binds to
+the node's IP — so `http://sonarr.local` just works, no port suffix. (Plex is the exception: it uses
+`hostNetwork` and answers directly on `:32400`.) On a multi-node cluster, swap ServiceLB for MetalLB
+with a dedicated address pool.
 
 ---
 
 ## Maintenance
 
 ```bash
-# Roll a full image update across all services
-kubectl rollout restart deployment -n media
+# See what Argo thinks (sync/health of every app)
+kubectl -n argocd get applications
 
 # Stream logs from a service
 kubectl logs -n media deploy/sonarr -f
 
-# Check VPN is connected and get exit IP
-kubectl exec -n media deploy/gluetun-qbittorrent -c gluetun \
-  -- wget -qO- http://localhost:8000/v1/publicip/ip
+# Confirm the VPN exit IP
+kubectl exec -n media deploy/gluetun-qbittorrent -c gluetun -- wget -qO- http://localhost:8000/v1/publicip/ip
 
-# Status snapshot
+# Health snapshot
 ./scripts/verify.sh
+
+# Add a worker node
+ansible-playbook ansible/add-node.yml -e target=<host-in-inventory>
+
+# Re-provision a box from scratch (media on the NAS is untouched)
+ansible-playbook ansible/reset.yml -e target=<host> && ansible-playbook ansible/site.yml
 ```
 
 ---
 
-## Repository Structure
+## Repository structure
 
 ```
 .
-├── install.sh                   # One-line installer
-├── .env.example                 # Config template
-├── .gitignore
+├── install.sh                   # thin bootstrap: installs Ansible, runs site.yml
+├── ansible/                     # Layer 1 — the machines
+│   ├── site.yml                 #   full provision (K3s + Sealed Secrets + Argo CD)
+│   ├── add-node.yml             #   one-command node join
+│   ├── reset.yml                #   teardown / re-provision
+│   ├── inventory/               #   fleet as code (+ group_vars, localhost inventory)
+│   └── roles/                   #   common, k3s_server, k3s_agent, nfs_client, ingress_nginx,
+│                                #   sealed_secrets, argocd, tailscale, node_labels
+├── argocd/                      # Layer 2 — GitOps
+│   ├── root.yaml                #   App-of-Apps entrypoint
+│   └── apps/                    #   AppProject + media-stack Application (selfHeal/prune)
 ├── k8s/
-│   ├── base/                    # Environment-agnostic manifests
-│   │   ├── kustomization.yaml
-│   │   ├── namespace.yaml
-│   │   ├── configmap.yaml
-│   │   ├── network-policies.yaml
-│   │   ├── storage/             # PVs, PVCs, StorageClass
-│   │   ├── gluetun-qbittorrent/ # VPN sidecar + torrent client
-│   │   ├── prowlarr/
-│   │   ├── sonarr/
-│   │   ├── radarr/
-│   │   ├── bazarr/
-│   │   ├── overseerr/
-│   │   └── plex/
-│   └── overlays/
-│       └── pi5/                 # Pi 5 node selector patch
+│   ├── base/                    # environment-agnostic manifests
+│   │   ├── storage/             #   NFS PV + RWX claim + StorageClass
+│   │   ├── backup/              #   nightly config backup CronJob → NAS
+│   │   ├── sealed-secret.yaml   #   encrypted secrets (generated by seal-secrets.sh)
+│   │   └── <service>/           #   one dir per app
+│   └── overlays/pi5/            # node pinning + nas-patch.yaml (your NAS IP)
 └── scripts/
-    ├── bootstrap.sh             # Manual bootstrap (alternative to install.sh)
-    ├── create-secrets.sh        # Creates K8s Secret from .env
-    └── verify.sh                # Health check
+    ├── seal-secrets.sh          # encrypt secrets into Git (GitOps path)
+    ├── create-secrets.sh        # imperative secret (non-GitOps fallback)
+    ├── bootstrap.sh             # direct kubectl apply (non-GitOps fallback)
+    └── verify.sh                # health check
 ```
+
+---
+
+## OS options for the Plex box
+
+The Ansible `common` role targets **Debian-family** systems (Raspberry Pi OS Lite 64-bit, Ubuntu,
+Debian) and auto-enables the memory cgroup on Raspberry Pi (required by K3s). Fedora is also handled
+for package installs. For an immutable option, Talos Linux can host the cluster; point the Argo CD
+bootstrap at it instead of running the K3s roles (Pi 5 support since Talos v1.7).
 
 ---
 
 ## Roadmap
 
-- [ ] **Hardware transcoding** — Pi 5's VideoCore VII supports H.264/H.265. Uncomment the `/dev/dri` device mount in `k8s/base/plex/deployment.yaml`.
-- [ ] **MetalLB** — assign a real LAN IP to the Plex LoadBalancer service (removes need for `hostNetwork`).
-- [ ] **TLS / HTTPS** — cert-manager + Let's Encrypt for Overseerr external access.
-- [ ] **Multi-node storage** — replace `media-local` PVs with an NFS StorageClass or Longhorn when adding nodes.
-- [ ] **Talos migration guide** — step-by-step from RPi OS + K3s to Talos, preserving all config.
-- [ ] **Image pinning** — replace `latest` tags with pinned versions + Renovate/Dependabot automation.
-- [ ] **Monitoring** — Prometheus + Grafana dashboard for Pi 5 resource tracking.
+- [x] **NFS media storage** — media on the NAS, mounted RWX with hardlink support.
+- [x] **GitOps** — Argo CD App-of-Apps with self-heal + prune.
+- [x] **Declarative provisioning** — Ansible for K3s, controllers, and node joins.
+- [x] **Encrypted secrets in Git** — Sealed Secrets.
+- [x] **Config disaster recovery** — nightly backup to the NAS.
+- [ ] **Hardware transcoding** — Pi 5 VideoCore VII; uncomment the `/dev/dri` mount in
+  `k8s/base/plex/deployment.yaml` and set `privileged: true`.
+- [ ] **3-node HA** — embedded-etcd control plane; storage is already RWX-ready.
+- [ ] **MetalLB** — dedicated LAN IP for ingress on multi-node (replaces single-node ServiceLB).
+- [ ] **TLS / HTTPS** — cert-manager for external Overseerr access.
+- [ ] **Image pinning** — replace `latest` tags + Renovate automation.
+- [ ] **Monitoring** — Prometheus + Grafana as a new Argo app.
 
 ---
 

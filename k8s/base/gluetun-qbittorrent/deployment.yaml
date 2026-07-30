@@ -102,8 +102,9 @@ spec:
         volumeMounts:
         - name: qbittorrent-config
           mountPath: /config
-        - name: downloads
+        - name: media-nfs
           mountPath: /downloads
+          subPath: downloads
         startupProbe:
           httpGet:
             path: /
@@ -138,6 +139,6 @@ spec:
       - name: qbittorrent-config
         persistentVolumeClaim:
           claimName: qbittorrent-config-pvc
-      - name: downloads
+      - name: media-nfs
         persistentVolumeClaim:
-          claimName: downloads-pvc
+          claimName: media-nfs-pvc
