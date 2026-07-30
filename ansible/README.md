@@ -32,6 +32,7 @@ The on-box one-liner (`install.sh` at the repo root) runs `site.yml` against `lo
 | `nfs_client` | verifies the NAS export is reachable (non-fatal) |
 | `k3s_server` | installs the K3s control plane, exposes the join token + a user kubeconfig |
 | `k3s_agent` | joins a worker using the server's token |
+| `ingress_nginx` | installs the ingress-nginx controller (Traefik is disabled) |
 | `sealed_secrets` | installs the Sealed Secrets controller |
 | `argocd` | installs Argo CD and applies the root App-of-Apps |
 | `tailscale` | (optional) installs Tailscale and joins your tailnet |

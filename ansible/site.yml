@@ -13,6 +13,7 @@
     - common          # OS prep, packages, timezone, Pi cgroups
     - nfs_client       # NFS mount tooling + NAS reachability check
     - k3s_server       # install K3s control plane
+    - ingress_nginx    # ingress controller the media Ingress objects require
     - sealed_secrets   # controller so encrypted secrets in Git can be decrypted in-cluster
     - argocd           # install Argo CD + apply the root App-of-Apps
     - node_labels      # label the node (transcode capability, etc.)

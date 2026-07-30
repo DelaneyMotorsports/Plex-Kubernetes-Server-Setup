@@ -3,9 +3,10 @@
 
 # ---- K3s ----
 k3s_version: "v1.31.5+k3s1"
-# Extra args passed to the K3s server install. Traefik (ingress) and ServiceLB are
-# left ENABLED on purpose — the media manifests ship Ingress objects that need them.
-k3s_server_args: []
+# Disable the bundled Traefik: the media Ingress objects use ingressClassName: nginx, so we
+# install ingress-nginx instead (see the ingress_nginx role). ServiceLB (klipper) stays on.
+k3s_server_args:
+  - "--disable=traefik"
 
 # ---- NAS (the "Nomad" box) ----
 # Used for the (non-fatal) reachability check and the docs. The PV itself is set in
@@ -26,6 +27,7 @@ gitops_overlay_path: "k8s/overlays/pi5"
 # ---- Component versions (pinned for reproducible rebuilds) ----
 argocd_version: "v2.13.2"
 sealed_secrets_version: "v0.27.1"
+ingress_nginx_version: "controller-v1.11.3"
 
 # ---- Remote access (optional) ----
 enable_tailscale: false

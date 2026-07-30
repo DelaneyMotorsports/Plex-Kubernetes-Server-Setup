@@ -1,0 +1,19 @@
+---
+# The media Ingress objects all use `ingressClassName: nginx` with nginx.ingress.* annotations,
+# so the cluster needs the ingress-nginx controller. K3s ships Traefik by default, which is
+# disabled via k3s_server_args (see group_vars) so the two don't conflict.
+- name: Install the ingress-nginx controller (baremetal provider)
+  ansible.builtin.command: >
+    k3s kubectl apply -f
+    https://raw.githubusercontent.com/kubernetes/ingress-nginx/{{ ingress_nginx_version }}/deploy/static/provider/baremetal/deploy.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: ingress_apply
+  changed_when: "'created' in ingress_apply.stdout or 'configured' in ingress_apply.stdout"
+
+- name: Wait for the ingress-nginx controller to be Available
+  ansible.builtin.command: >
+    k3s kubectl -n ingress-nginx rollout status deploy/ingress-nginx-controller --timeout=180s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  changed_when: false

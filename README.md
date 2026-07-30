@@ -241,7 +241,7 @@ ansible-playbook ansible/reset.yml -e target=<host> && ansible-playbook ansible/
 │   ├── add-node.yml             #   one-command node join
 │   ├── reset.yml                #   teardown / re-provision
 │   ├── inventory/               #   fleet as code (+ group_vars, localhost inventory)
-│   └── roles/                   #   common, k3s_server, k3s_agent, nfs_client,
+│   └── roles/                   #   common, k3s_server, k3s_agent, nfs_client, ingress_nginx,
 │                                #   sealed_secrets, argocd, tailscale, node_labels
 ├── argocd/                      # Layer 2 — GitOps
 │   ├── root.yaml                #   App-of-Apps entrypoint
