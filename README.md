@@ -146,9 +146,13 @@ use the node's local-path storage, because SQLite over NFS has locking problems.
 Restoring a rebuilt node requires the offline repository password and the
 [disaster recovery runbook](docs/disaster-recovery.md); provisioning alone does not restore data.
 
-**Gluetun + qBittorrent share a pod network namespace.** All qBittorrent traffic physically cannot
-leave except through the WireGuard tunnel — no routing rules. A `wait-for-vpn` init container blocks
-qBittorrent until Gluetun reports a connected VPN IP.
+**Gluetun + qBittorrent share a pod network namespace.** The native sidecar's
+startup probe blocks qBittorrent until Gluetun reports VPN health. Probes use
+`/gluetun-entrypoint healthcheck`, independent of control-server authentication.
+The control API listens only on loopback and retains authenticated defaults.
+Gluetun's firewall allows the qBittorrent UI on 8080 and explicit K3s pod/service
+subnets for cluster traffic; internet traffic uses the VPN and its kill switch.
+See [VPN validation](docs/vpn.md) before treating a deployment as leak-tested.
 
 **No Cloudflare dependencies.** No Tunnel, no WARP, no proxied domains. Remote access is via Tailscale
 (optional) or your own network.
@@ -224,7 +228,7 @@ kubectl -n argocd get applications
 kubectl logs -n media deploy/sonarr -f
 
 # Confirm the VPN exit IP
-kubectl exec -n media deploy/gluetun-qbittorrent -c gluetun -- wget -qO- http://localhost:8000/v1/publicip/ip
+kubectl logs -n media deploy/gluetun-qbittorrent -c gluetun --since=10m | grep -i 'public ip'
 
 # Health snapshot
 ./scripts/verify.sh
