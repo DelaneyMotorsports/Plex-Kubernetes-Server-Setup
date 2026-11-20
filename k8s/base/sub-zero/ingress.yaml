@@ -4,7 +4,7 @@ metadata:
   name: sub-zero-ingress
   namespace: media
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
   - host: sub-zero.local
     http:

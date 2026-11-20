@@ -4,7 +4,7 @@ metadata:
   name: prowlarr-ingress
   namespace: media
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
   - host: prowlarr.local
     http:

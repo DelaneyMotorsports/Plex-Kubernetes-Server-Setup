@@ -3,11 +3,8 @@ kind: Ingress
 metadata:
   name: qbittorrent-ingress
   namespace: media
-  annotations:
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
   - host: qbittorrent.local
     http:

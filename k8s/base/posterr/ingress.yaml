@@ -4,7 +4,7 @@ metadata:
   name: posterr-ingress
   namespace: media
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
   - host: posterr.local
     http:

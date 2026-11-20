@@ -127,7 +127,7 @@ Set the cluster's view of it in `k8s/overlays/pi5/nas-patch.yaml` (the one place
 |---|---|---|
 | Self-healing | Manual restart policies | Controllers restart pods **and** Argo reverts drift |
 | Config source of truth | Files copied between hosts | Git — audited, revertable |
-| Rolling updates | Stop → pull → start | Zero-downtime rollout |
+| Rolling updates | Stop → pull → start | Recreate rollout for single-instance stateful apps |
 | Secrets | `.env` on disk | Sealed Secrets (encrypted, in Git) |
 | Network isolation | Docker networks | NetworkPolicies + namespace isolation |
 | Rebuild a dead host | Re-run everything by hand | `ansible-playbook site.yml`, Argo repaints |
@@ -205,7 +205,7 @@ Add to `/etc/hosts` (or your local DNS/Pi-hole):
 <PLEX_BOX_IP>  bazarr.local overseerr.local qbittorrent.local
 ```
 
-The apps are served over HTTP on port **80** by ingress-nginx, which K3s ServiceLB (klipper) binds to
+The apps are served over HTTP on port **80** by Traefik, which K3s ServiceLB (klipper) binds to
 the node's IP — so `http://sonarr.local` just works, no port suffix. (Plex is the exception: it uses
 `hostNetwork` and answers directly on `:32400`.) On a multi-node cluster, swap ServiceLB for MetalLB
 with a dedicated address pool.
@@ -246,7 +246,7 @@ ansible-playbook ansible/reset.yml -e target=<host> && ansible-playbook ansible/
 │   ├── add-node.yml             #   one-command node join
 │   ├── reset.yml                #   teardown / re-provision
 │   ├── inventory/               #   fleet as code (+ group_vars, localhost inventory)
-│   └── roles/                   #   common, k3s_server, k3s_agent, nfs_client, ingress_nginx,
+│   └── roles/                   #   common, k3s_server, k3s_agent, nfs_client, ingress_traefik,
 │                                #   sealed_secrets, argocd, tailscale, node_labels
 ├── argocd/                      # Layer 2 — GitOps
 │   ├── root.yaml                #   App-of-Apps entrypoint
@@ -294,3 +294,16 @@ bootstrap at it instead of running the K3s roles (Pi 5 support since Talos v1.7)
 ---
 
 *Delaney Motorsports R&D — Kevin Delaney, Director of Research and Development*
+
+## Ingress migration
+
+The Ansible ingress_traefik role installs Traefik chart 42.4.0 through the K3s Helm controller.
+Bundled Traefik remains disabled to avoid installing two controllers. All Ingress objects use
+class `traefik`; no NGINX snippets or annotations remain. The dashboard is not exposed.
+
+For an existing installation, first sync the updated media Ingress and NetworkPolicy objects
+from your chosen Git revision, then run `ansible-playbook site.yml` from `ansible/`. The role
+waits for the new controller, removes the former ingress-nginx workload/admission webhook,
+and waits for ServiceLB to assign an address. Expect a brief routing interruption during
+the port handover; application data and namespaces are retained. Inspect `kubectl get
+helmchart -n kube-system media-ingress` if installation does not finish.

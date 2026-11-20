@@ -1,0 +1,40 @@
+---
+- name: Render the pinned Traefik HelmChart
+  ansible.builtin.template:
+    src: media-ingress.yaml.j2
+    dest: /var/lib/rancher/k3s/server/manifests/media-ingress.yaml
+    mode: "0644"
+
+- name: Wait for the Traefik controller before retiring ingress-nginx
+  ansible.builtin.command: >-
+    k3s kubectl -n ingress-traefik rollout status deployment/media-ingress --timeout=180s
+  register: traefik_ready
+  until: traefik_ready.rc == 0
+  retries: 10
+  delay: 10
+  changed_when: false
+
+# Remove only resources created by the previous controller's installer. No media
+# objects, PVCs, or namespaces are deleted. ServiceLB can then release ports 80/443.
+- name: Retire the ingress-nginx workload and admission jobs
+  ansible.builtin.command: >-
+    k3s kubectl -n ingress-nginx delete deployment,service,job
+    -l app.kubernetes.io/instance=ingress-nginx --ignore-not-found=true
+  register: nginx_retired
+  changed_when: "'deleted' in nginx_retired.stdout"
+
+- name: Remove the retired ingress-nginx admission webhook
+  ansible.builtin.command: >-
+    k3s kubectl delete validatingwebhookconfiguration ingress-nginx-admission --ignore-not-found=true
+  register: nginx_webhook
+  changed_when: "'deleted' in nginx_webhook.stdout"
+
+- name: Wait for the Traefik LoadBalancer address
+  ansible.builtin.command: >-
+    k3s kubectl -n ingress-traefik get service media-ingress
+    -o jsonpath={.status.loadBalancer.ingress}
+  register: traefik_address
+  until: traefik_address.rc == 0 and traefik_address.stdout | length > 2
+  retries: 30
+  delay: 5
+  changed_when: false

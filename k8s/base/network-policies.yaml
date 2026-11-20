@@ -19,10 +19,7 @@ spec:
           kubernetes.io/metadata.name: media
     - namespaceSelector:
         matchLabels:
-          kubernetes.io/metadata.name: ingress-nginx
-    - namespaceSelector:
-        matchLabels:
-          app.kubernetes.io/name: traefik
+          kubernetes.io/metadata.name: ingress-traefik
 ---
 # Allow all pods in media namespace to reach kube-dns
 apiVersion: networking.k8s.io/v1

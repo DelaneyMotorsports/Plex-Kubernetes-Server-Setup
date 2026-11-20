@@ -1,0 +1,50 @@
+# K3s Helm controller manages this pinned release independently of bundled Traefik.
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: media-ingress
+  namespace: kube-system
+spec:
+  repo: https://traefik.github.io/charts
+  chart: traefik
+  version: "{{ traefik_chart_version }}"
+  targetNamespace: ingress-traefik
+  createNamespace: true
+  valuesContent: |-
+    fullnameOverride: media-ingress
+    ingressClass:
+      enabled: true
+      isDefaultClass: false
+      name: traefik
+    providers:
+      kubernetesIngress:
+        enabled: true
+        ingressClass: traefik
+      kubernetesCRD:
+        enabled: false
+    ingressRoute:
+      dashboard:
+        enabled: false
+    service:
+      spec:
+        type: LoadBalancer
+        externalTrafficPolicy: Local
+    ports:
+      web:
+        transport:
+          respondingTimeouts:
+            readTimeout: 60s
+            writeTimeout: 0s
+            idleTimeout: 180s
+      websecure:
+        transport:
+          respondingTimeouts:
+            readTimeout: 60s
+            writeTimeout: 0s
+            idleTimeout: 180s
+    resources:
+      requests:
+        cpu: 100m
+        memory: 96Mi
+      limits:
+        memory: 256Mi

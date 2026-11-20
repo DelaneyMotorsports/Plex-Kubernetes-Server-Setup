@@ -3,8 +3,8 @@
 
 # ---- K3s ----
 k3s_version: "v1.31.5+k3s1"
-# Disable the bundled Traefik: the media Ingress objects use ingressClassName: nginx, so we
-# install ingress-nginx instead (see the ingress_nginx role). ServiceLB (klipper) stays on.
+# Keep bundled Traefik disabled: ingress_traefik installs an independently pinned
+# chart using the K3s Helm controller. ServiceLB (klipper) stays enabled.
 k3s_server_args:
   - "--disable=traefik"
 
@@ -27,7 +27,7 @@ gitops_overlay_path: "k8s/overlays/pi5"
 # ---- Component versions (pinned for reproducible rebuilds) ----
 argocd_version: "v2.13.2"
 sealed_secrets_version: "v0.27.1"
-ingress_nginx_version: "controller-v1.11.3"
+traefik_chart_version: "42.4.0"
 
 # ---- Remote access (optional) ----
 enable_tailscale: false

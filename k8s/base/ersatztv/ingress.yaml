@@ -4,7 +4,7 @@ metadata:
   name: ersatztv-ingress
   namespace: media
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
   - host: ersatztv.local
     http:

@@ -4,7 +4,7 @@ metadata:
   name: theposterdb-ingress
   namespace: media
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
   - host: theposterdb.local
     http:

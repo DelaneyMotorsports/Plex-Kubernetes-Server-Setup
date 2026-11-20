@@ -4,7 +4,7 @@ metadata:
   name: janitorr-ingress
   namespace: media
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
   - host: janitorr.local
     http:

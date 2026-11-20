@@ -4,7 +4,7 @@ metadata:
   name: scannarr-ingress
   namespace: media
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
   - host: scannarr.local
     http:
