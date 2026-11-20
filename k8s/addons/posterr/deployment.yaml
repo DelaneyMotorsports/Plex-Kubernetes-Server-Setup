@@ -1,73 +1,70 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ersatztv
+  name: posterr
   namespace: media
   labels:
-    app.kubernetes.io/name: ersatztv
+    app.kubernetes.io/name: posterr
     app.kubernetes.io/part-of: media-stack
-    app.kubernetes.io/component: live-tv
+    app.kubernetes.io/component: display
 spec:
   replicas: 1
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app: ersatztv
+      app: posterr
   template:
     metadata:
       labels:
-        app: ersatztv
+        app: posterr
         app.kubernetes.io/part-of: media-stack
     spec:
       securityContext:
         fsGroup: 1000
-        fsGroupChangePolicy: OnRootMismatch   # don't recursively chown the huge NFS tree every restart
       containers:
-      - name: ersatztv
-        image: jasongdove/ersatztv:latest
+      - name: posterr
+        image: petersem/posterr@sha256:8d2dec29eac8d1e3a56589c2e1a8dbafca49991a4b2e43b7246b643be028852e
         envFrom:
         - configMapRef:
             name: media-stack-config
         ports:
         - name: http
-          containerPort: 8409
+          containerPort: 3000
         volumeMounts:
         - name: config
-          mountPath: /root/.local/share/ersatztv
-        - name: media-nfs
-          mountPath: /media
-          subPath: media
+          mountPath: /usr/src/app/config
+        - name: config
+          mountPath: /usr/src/app/public/custom
+          subPath: custom
         startupProbe:
           httpGet:
             path: /
-            port: 8409
-          initialDelaySeconds: 20
+            port: 3000
+          initialDelaySeconds: 15
           periodSeconds: 10
           failureThreshold: 18
         livenessProbe:
           httpGet:
             path: /
-            port: 8409
+            port: 3000
           periodSeconds: 30
           failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /
-            port: 8409
+            port: 3000
           periodSeconds: 10
           failureThreshold: 3
         resources:
           requests:
-            cpu: "100m"
-            memory: "256Mi"
+            cpu: 50m
+            memory: 64Mi
           limits:
-            cpu: "1000m"
-            memory: "1Gi"
+            cpu: 200m
+            memory: 256Mi
+        imagePullPolicy: IfNotPresent
       volumes:
       - name: config
         persistentVolumeClaim:
-          claimName: ersatztv-config-pvc
-      - name: media-nfs
-        persistentVolumeClaim:
-          claimName: media-nfs-pvc
+          claimName: posterr-config-pvc

@@ -24,7 +24,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: kometa
-        image: kometateam/kometa:latest
+        image: kometateam/kometa@sha256:4e45d12ca8cb21b5a47a25917542dbb305fc0c76a366bc692ae9490da35d168d
         envFrom:
         - configMapRef:
             name: media-stack-config
@@ -33,11 +33,12 @@ spec:
           mountPath: /config
         resources:
           requests:
-            cpu: "100m"
-            memory: "256Mi"
+            cpu: 100m
+            memory: 256Mi
           limits:
-            cpu: "1000m"
-            memory: "2Gi"
+            cpu: 1000m
+            memory: 2Gi
+        imagePullPolicy: IfNotPresent
       volumes:
       - name: config
         persistentVolumeClaim:

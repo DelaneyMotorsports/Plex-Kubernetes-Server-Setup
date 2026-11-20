@@ -14,12 +14,7 @@ resources:
 - bazarr/
 - overseerr/
 - plex/
-- tdarr/
-- recyclarr/
-- profilarr/
-- unpackerr/
-- ersatztv/
-- kometa/
-- posterr/
-commonLabels:
-  app.kubernetes.io/managed-by: kustomize
+labels:
+- pairs:
+    app.kubernetes.io/managed-by: kustomize
+  includeSelectors: true

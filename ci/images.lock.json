@@ -1,0 +1,202 @@
+{
+  "format": 1,
+  "images": {
+    "lscr.io/linuxserver/overseerr:latest": {
+      "source": "lscr.io/linuxserver/overseerr:latest",
+      "reference": "lscr.io/linuxserver/overseerr@sha256:53a1b839ffa81f139e1552840772bff8a5d13f5c78a69cce22458b9a6cd0844d",
+      "digest": "sha256:53a1b839ffa81f139e1552840772bff8a5d13f5c78a69cce22458b9a6cd0844d",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "lscr.io/linuxserver/radarr:latest": {
+      "source": "lscr.io/linuxserver/radarr:latest",
+      "reference": "lscr.io/linuxserver/radarr@sha256:044788f5508b7f67a3e0368cdd142c77c4d4cd5aec2efaba53e1a68b6b6231e7",
+      "digest": "sha256:044788f5508b7f67a3e0368cdd142c77c4d4cd5aec2efaba53e1a68b6b6231e7",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "lscr.io/linuxserver/sonarr:latest": {
+      "source": "lscr.io/linuxserver/sonarr:latest",
+      "reference": "lscr.io/linuxserver/sonarr@sha256:c7d1df25e428da6c9ace05daea0d34e59522978a3843ea1944812f855af4086c",
+      "digest": "sha256:c7d1df25e428da6c9ace05daea0d34e59522978a3843ea1944812f855af4086c",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "lscr.io/linuxserver/prowlarr:latest": {
+      "source": "lscr.io/linuxserver/prowlarr:latest",
+      "reference": "lscr.io/linuxserver/prowlarr@sha256:45117ba8439e2337a92ffe38a451a4dafc0be771754d05d88cdf102419d09646",
+      "digest": "sha256:45117ba8439e2337a92ffe38a451a4dafc0be771754d05d88cdf102419d09646",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "lscr.io/linuxserver/bazarr:latest": {
+      "source": "lscr.io/linuxserver/bazarr:latest",
+      "reference": "lscr.io/linuxserver/bazarr@sha256:e0c5d45965242830c5eeddaafe9ae2b5e8ca3f6c01ecda9ee9364f550921dc50",
+      "digest": "sha256:e0c5d45965242830c5eeddaafe9ae2b5e8ca3f6c01ecda9ee9364f550921dc50",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "qmcgaw/gluetun:latest": {
+      "source": "qmcgaw/gluetun:latest",
+      "reference": "qmcgaw/gluetun@sha256:b68e26d63c1cb352b53518e4f96fbb12eb9ae8412ec0c2bc5c47bca2c1338b9e",
+      "digest": "sha256:b68e26d63c1cb352b53518e4f96fbb12eb9ae8412ec0c2bc5c47bca2c1338b9e",
+      "platforms": [
+        "linux/386",
+        "linux/amd64",
+        "linux/arm",
+        "linux/arm64",
+        "linux/ppc64le"
+      ]
+    },
+    "lscr.io/linuxserver/qbittorrent:latest": {
+      "source": "lscr.io/linuxserver/qbittorrent:latest",
+      "reference": "lscr.io/linuxserver/qbittorrent@sha256:3d4c4545d51a690a0df15a2ff99038823a88a9822df8e794526447b9afbd7384",
+      "digest": "sha256:3d4c4545d51a690a0df15a2ff99038823a88a9822df8e794526447b9afbd7384",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "lscr.io/linuxserver/plex:latest": {
+      "source": "lscr.io/linuxserver/plex:latest",
+      "reference": "lscr.io/linuxserver/plex@sha256:9a1325bf0b34a50993a04be0bdcc7fab841d2a78161bd11b4db4ff8478a7ac2a",
+      "digest": "sha256:9a1325bf0b34a50993a04be0bdcc7fab841d2a78161bd11b4db4ff8478a7ac2a",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "ghcr.io/dictionarry-hub/profilarr:latest": {
+      "source": "ghcr.io/dictionarry-hub/profilarr:latest",
+      "reference": "ghcr.io/dictionarry-hub/profilarr@sha256:352e42dec74ecfd68d13bb198fbc6d9346e3a8c55003026e1814e59319a2176d",
+      "digest": "sha256:352e42dec74ecfd68d13bb198fbc6d9346e3a8c55003026e1814e59319a2176d",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "boerderij/varken:latest": {
+      "source": "boerderij/varken:latest",
+      "reference": "boerderij/varken@sha256:784aaf577c822a3e69c5b2792e0422896c8cdb0455e584cd5a4e46bca789848d",
+      "digest": "sha256:784aaf577c822a3e69c5b2792e0422896c8cdb0455e584cd5a4e46bca789848d",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm",
+        "linux/arm64"
+      ]
+    },
+    "petersem/posterr:latest": {
+      "source": "petersem/posterr:latest",
+      "reference": "petersem/posterr@sha256:8d2dec29eac8d1e3a56589c2e1a8dbafca49991a4b2e43b7246b643be028852e",
+      "digest": "sha256:8d2dec29eac8d1e3a56589c2e1a8dbafca49991a4b2e43b7246b643be028852e",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "golift/unpackerr:latest": {
+      "source": "golift/unpackerr:latest",
+      "reference": "golift/unpackerr@sha256:fc8b69571033f197d4db5cf22a573acb3bb891c9f8033431b9a1fcf679ca3e9c",
+      "digest": "sha256:fc8b69571033f197d4db5cf22a573acb3bb891c9f8033431b9a1fcf679ca3e9c",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm",
+        "linux/arm64"
+      ]
+    },
+    "ghcr.io/haveagitgat/tdarr:latest": {
+      "source": "ghcr.io/haveagitgat/tdarr:latest",
+      "reference": "ghcr.io/haveagitgat/tdarr@sha256:84743e5ae433a5b49cb463b2dff2679eb02f0cac24fb88c830f49bf8aa9f1c04",
+      "digest": "sha256:84743e5ae433a5b49cb463b2dff2679eb02f0cac24fb88c830f49bf8aa9f1c04",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "kometateam/kometa:latest": {
+      "source": "kometateam/kometa:latest",
+      "reference": "kometateam/kometa@sha256:4e45d12ca8cb21b5a47a25917542dbb305fc0c76a366bc692ae9490da35d168d",
+      "digest": "sha256:4e45d12ca8cb21b5a47a25917542dbb305fc0c76a366bc692ae9490da35d168d",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "ghcr.io/recyclarr/recyclarr:8": {
+      "source": "ghcr.io/recyclarr/recyclarr:8",
+      "reference": "ghcr.io/recyclarr/recyclarr:8@sha256:3e9c41b9ec29bbf65fe846864058730d321a21f7695d8c0d9437b73e34d50ad9",
+      "digest": "sha256:3e9c41b9ec29bbf65fe846864058730d321a21f7695d8c0d9437b73e34d50ad9",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm",
+        "linux/arm64"
+      ]
+    },
+    "jasongdove/ersatztv:latest": {
+      "source": "jasongdove/ersatztv:latest",
+      "reference": "jasongdove/ersatztv@sha256:7c402e5f348184359e0951b44d55fb6db3df671fa77fc91dcbd609034d28778b",
+      "digest": "sha256:7c402e5f348184359e0951b44d55fb6db3df671fa77fc91dcbd609034d28778b",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm",
+        "linux/arm64"
+      ]
+    },
+    "ghcr.io/schaka/janitorr:jvm-stable": {
+      "source": "ghcr.io/schaka/janitorr:jvm-stable",
+      "reference": "ghcr.io/schaka/janitorr:jvm-stable@sha256:eecb604b6307f4ba5674bec7e3fc142d7212361571a1a9dc1f39e0fd069a4434",
+      "digest": "sha256:eecb604b6307f4ba5674bec7e3fc142d7212361571a1a9dc1f39e0fd069a4434",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "restic/restic:0.18.1": {
+      "source": "restic/restic:0.18.1",
+      "reference": "restic/restic:0.18.1@sha256:39d9072fb5651c80d75c7a811612eb60b4c06b32ffe87c2e9f3c7222e1797e76",
+      "digest": "sha256:39d9072fb5651c80d75c7a811612eb60b4c06b32ffe87c2e9f3c7222e1797e76",
+      "platforms": [
+        "linux/386",
+        "linux/amd64",
+        "linux/arm",
+        "linux/arm64"
+      ]
+    },
+    "python:3.12-alpine": {
+      "source": "python:3.12-alpine",
+      "reference": "python:3.12-alpine@sha256:c5ba3deef00c7758561a0f03c26f44f10589263d40e732b8748e0d1f38f6dd89",
+      "digest": "sha256:c5ba3deef00c7758561a0f03c26f44f10589263d40e732b8748e0d1f38f6dd89",
+      "platforms": [
+        "linux/386",
+        "linux/amd64",
+        "linux/arm",
+        "linux/arm64",
+        "linux/ppc64le",
+        "linux/riscv64",
+        "linux/s390x"
+      ]
+    },
+    "docker.io/traefik:v3.7.18": {
+      "source": "docker.io/traefik:v3.7.18",
+      "reference": "docker.io/traefik:v3.7.18@sha256:9c437ac4f09ce6f4980a8544902d3475fdf70a1a7c578729581d2535dfa7d635",
+      "digest": "sha256:9c437ac4f09ce6f4980a8544902d3475fdf70a1a7c578729581d2535dfa7d635",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm",
+        "linux/arm64",
+        "linux/ppc64le",
+        "linux/s390x"
+      ]
+    }
+  }
+}

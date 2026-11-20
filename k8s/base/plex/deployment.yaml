@@ -1,3 +1,4 @@
+# Pi 5 is intended for Direct Play; no hardware encoder is present on that SoC.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,14 +21,11 @@ spec:
         app: plex
         app.kubernetes.io/part-of: media-stack
     spec:
-      # hostNetwork exposes Plex on the host IP for local network discovery (GDM).
-      # Clients find the server automatically without needing manual IP entry.
-      # Remove if you don't need local discovery and want strict network isolation.
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: plex
-        image: lscr.io/linuxserver/plex:latest
+        image: lscr.io/linuxserver/plex@sha256:9a1325bf0b34a50993a04be0bdcc7fab841d2a78161bd11b4db4ff8478a7ac2a
         envFrom:
         - configMapRef:
             name: media-stack-config
@@ -35,7 +33,7 @@ spec:
             name: media-stack-secret
         env:
         - name: VERSION
-          value: "docker"
+          value: docker
         ports:
         - name: plex
           containerPort: 32400
@@ -46,25 +44,18 @@ spec:
         - name: media-nfs
           mountPath: /media
           subPath: media
-          readOnly: true          # Plex only reads the library; writes go via the *arr apps
+          readOnly: true
         - name: transcode
           mountPath: /transcode
-
-        # ── Optional: hardware transcoding on Pi 5 (VideoCore VII)
-        # Uncomment the device mount below and set securityContext.privileged: true
-        # Also add to volumeMounts: { name: dri, mountPath: /dev/dri }
-        # - name: dri
-        #   mountPath: /dev/dri
-
         securityContext:
-          privileged: false         # Set true only if using hardware transcoding
+          privileged: false
         startupProbe:
           httpGet:
             path: /identity
             port: 32400
           initialDelaySeconds: 30
           periodSeconds: 10
-          failureThreshold: 24      # Up to 4 minutes for initial Plex startup
+          failureThreshold: 24
         livenessProbe:
           httpGet:
             path: /identity
@@ -79,12 +70,14 @@ spec:
           failureThreshold: 3
         resources:
           requests:
-            cpu: "500m"
-            memory: "512Mi"
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
           limits:
-            cpu: "2000m"
-            memory: "3Gi"           # Generous for transcoding on 8GB Pi 5
-
+            cpu: 2000m
+            memory: 3Gi
+            ephemeral-storage: 10Gi
+        imagePullPolicy: IfNotPresent
       volumes:
       - name: config
         persistentVolumeClaim:
@@ -93,9 +86,5 @@ spec:
         persistentVolumeClaim:
           claimName: media-nfs-pvc
       - name: transcode
-        emptyDir: {}               # Ephemeral — transcodes are transient by nature
-
-      # ── Optional: hardware transcoding device
-      # - name: dri
-      #   hostPath:
-      #     path: /dev/dri
+        emptyDir:
+          sizeLimit: 8Gi

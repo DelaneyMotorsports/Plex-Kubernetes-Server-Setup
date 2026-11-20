@@ -12,6 +12,10 @@ spec:
   createNamespace: true
   valuesContent: |-
     fullnameOverride: media-ingress
+    versionOverride: "{{ traefik_image_version }}"
+    image:
+      tag: "{{ traefik_image_version }}"
+      digest: "{{ traefik_image_digest }}"
     ingressClass:
       enabled: true
       isDefaultClass: false

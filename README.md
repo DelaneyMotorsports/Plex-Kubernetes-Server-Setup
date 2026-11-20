@@ -11,7 +11,7 @@ Two layers, cleanly separated:
   Argo CD + Sealed Secrets. Adding a node is one command.
 - **Argo CD** owns the workloads (Day 2–forever): it continuously reconciles the cluster to this
   Git repo. Drift is reverted automatically, rollbacks are `git revert`, and a rebuilt node repaints
-  itself from Git with no human intervention.
+  workload definitions from Git. App-data recovery follows the disaster recovery runbook.
 
 Bulk media lives on a **separate NAS box** ("Nomad") and is mounted into the cluster over NFS, so the
 compute nodes stay disposable and the library survives any node being reimaged.
@@ -38,7 +38,7 @@ Managed by:
 
 ---
 
-## How it stays healthy (no human intervention)
+## Health and recovery
 
 | Failure | Who heals it | You do |
 |---|---|---|
@@ -100,7 +100,9 @@ cp .env.example .env && $EDITOR .env      # WireGuard keys, Plex claim
 git commit -am "configure NAS + secrets" && git push
 ```
 
-Argo CD reconciles both within its sync window — no `kubectl apply` needed.
+Argo CD reconciles both within its sync window. Before relying on scheduled backups, run
+`./scripts/create-backup-secret.sh` and keep its encryption password off-cluster.
+Follow the [backup verification and recovery runbook](docs/disaster-recovery.md).
 
 ---
 
@@ -172,7 +174,8 @@ See [VPN validation](docs/vpn.md) before treating a deployment as leak-tested.
 | qBittorrent | 8080 | Torrent client (VPN-isolated) |
 | Gluetun | — | WireGuard VPN gateway |
 
-Enrichment apps include Tdarr, ErsatzTV, Recyclarr, Profilarr, Unpackerr, Kometa and Posterr.
+The default runs seven core Deployments. Optional addons include Tdarr, ErsatzTV, Recyclarr,
+Profilarr, Unpackerr, Kometa and Posterr under `k8s/addons/`.
 See [application validation and prerequisites](docs/applications.md) before enabling extras.
 Janitorr and Varken require external services and are opt-in addons. Invalid standalone
 Sub-Zero/ThePosterDB/Mediux/Scannarr definitions have been removed; their config PVCs are retained.
@@ -291,12 +294,12 @@ bootstrap at it instead of running the K3s roles (Pi 5 support since Talos v1.7)
 - [x] **Declarative provisioning** — Ansible for K3s, controllers, and node joins.
 - [x] **Encrypted secrets in Git** — Sealed Secrets.
 - [x] **Config disaster recovery** — consistent encrypted backups and an explicit restore runbook.
-- [ ] **Hardware transcoding** — Pi 5 VideoCore VII; uncomment the `/dev/dri` mount in
-  `k8s/base/plex/deployment.yaml` and set `privileged: true`.
+- [ ] **Hardware transcoding on supported compute** — Pi 5 has no hardware encoder;
+  see the [Pi profile](docs/pi5-profile.md) before enabling optional transcoders.
 - [ ] **3-node HA** — embedded-etcd control plane; storage is already RWX-ready.
 - [ ] **MetalLB** — dedicated LAN IP for ingress on multi-node (replaces single-node ServiceLB).
 - [ ] **TLS / HTTPS** — cert-manager for external Overseerr access.
-- [ ] **Image pinning** — replace `latest` tags + Renovate automation.
+- [x] **Image pinning** — immutable multi-platform digests, reviewed lock metadata, explicit refresh tooling.
 - [ ] **Monitoring** — Prometheus + Grafana as a new Argo app.
 
 ---
@@ -322,3 +325,11 @@ helmchart -n kube-system media-ingress` if installation does not finish.
 image, Ansible and ShellCheck checks, encrypted recovery tests, and isolated real-app
 startup behind Traefik. The workflow runs on this improvement branch and pull requests.
 No production cluster or private VPN credentials are used by CI.
+
+## Pi profile and image updates
+
+The [Pi 5 profile](docs/pi5-profile.md) keeps extras opt-in and checks a 5.5 GiB
+peak memory-limit budget for core apps, Traefik and one backup, leaving headroom
+for K3s, Argo CD and the OS. All application/addon/backup/Traefik images have
+immutable multiarch pins; use the [image update procedure](docs/image-updates.md)
+to review changes. No update tool creates commits or changes contributor identity.

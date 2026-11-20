@@ -1,59 +1,56 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: posterr
+  name: profilarr
   namespace: media
   labels:
-    app.kubernetes.io/name: posterr
+    app.kubernetes.io/name: profilarr
     app.kubernetes.io/part-of: media-stack
-    app.kubernetes.io/component: display
+    app.kubernetes.io/component: config-sync
 spec:
   replicas: 1
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app: posterr
+      app: profilarr
   template:
     metadata:
       labels:
-        app: posterr
+        app: profilarr
         app.kubernetes.io/part-of: media-stack
     spec:
       securityContext:
         fsGroup: 1000
       containers:
-      - name: posterr
-        image: petersem/posterr:latest
+      - name: profilarr
+        image: ghcr.io/dictionarry-hub/profilarr@sha256:352e42dec74ecfd68d13bb198fbc6d9346e3a8c55003026e1814e59319a2176d
         envFrom:
         - configMapRef:
             name: media-stack-config
         ports:
         - name: http
-          containerPort: 3000
+          containerPort: 6868
         volumeMounts:
         - name: config
-          mountPath: /usr/src/app/config
-        - name: config
-          mountPath: /usr/src/app/public/custom
-          subPath: custom
+          mountPath: /config
         startupProbe:
           httpGet:
             path: /
-            port: 3000
+            port: 6868
           initialDelaySeconds: 15
           periodSeconds: 10
           failureThreshold: 18
         livenessProbe:
           httpGet:
             path: /
-            port: 3000
+            port: 6868
           periodSeconds: 30
           failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /
-            port: 3000
+            port: 6868
           periodSeconds: 10
           failureThreshold: 3
         resources:
@@ -63,7 +60,8 @@ spec:
           limits:
             cpu: 200m
             memory: 256Mi
+        imagePullPolicy: IfNotPresent
       volumes:
       - name: config
         persistentVolumeClaim:
-          claimName: posterr-config-pvc
+          claimName: profilarr-config-pvc

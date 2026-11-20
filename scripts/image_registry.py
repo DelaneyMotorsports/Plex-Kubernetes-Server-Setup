@@ -57,10 +57,15 @@ def inspect_image(image):
             response = urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=45)
         with response:
             body = response.read()
-            digest = response.headers.get('Docker-Content-Digest') or 'sha256:' + hashlib.sha256(body).hexdigest()
+            actual = 'sha256:' + hashlib.sha256(body).hexdigest()
+            digest = response.headers.get('Docker-Content-Digest') or actual
+            if digest != actual:
+                raise RuntimeError('Registry manifest bytes do not match its declared digest')
             return json.loads(body), digest
 
     manifest, digest = fetch('manifests/' + urllib.parse.quote(reference, safe=':'))
+    if reference.startswith('sha256:') and reference != digest:
+        raise RuntimeError('Registry returned a different digest than the requested immutable image')
     if 'manifests' in manifest:
         platforms = sorted({p['platform']['os'] + '/' + p['platform']['architecture']
                             for p in manifest['manifests'] if p.get('platform', {}).get('os') not in (None, 'unknown')})

@@ -27,7 +27,7 @@ jobs:
     - name: Validate infrastructure and manifests
       run: ./scripts/validate.sh
     - name: Verify public image availability and architectures
-      run: python scripts/validate-images.py "$RUNNER_TEMP"/media-rendered/*.yaml
+      run: python scripts/validate-images.py --require-digests "$RUNNER_TEMP"/media-rendered/*.yaml
   startup:
     needs: validation
     runs-on: ubuntu-24.04

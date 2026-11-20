@@ -20,7 +20,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: backup
-            image: python:3.12-alpine
+            image: python:3.12-alpine@sha256:c5ba3deef00c7758561a0f03c26f44f10589263d40e732b8748e0d1f38f6dd89
             command:
             - python3
             - /scripts/config-recovery.py
@@ -135,6 +135,7 @@ spec:
             - name: tdarr-server
               mountPath: /config-volumes/tdarr-server-pvc
               readOnly: true
+            imagePullPolicy: IfNotPresent
           volumes:
           - name: tools
             emptyDir: {}
@@ -225,7 +226,7 @@ spec:
               type: RuntimeDefault
           initContainers:
           - name: restic
-            image: restic/restic:0.18.1
+            image: restic/restic:0.18.1@sha256:39d9072fb5651c80d75c7a811612eb60b4c06b32ffe87c2e9f3c7222e1797e76
             command:
             - /bin/sh
             - -c
@@ -233,6 +234,14 @@ spec:
             volumeMounts:
             - name: tools
               mountPath: /tools
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 10m
+                memory: 32Mi
+              limits:
+                cpu: 100m
+                memory: 128Mi
         metadata:
           labels:
             app: config-backup

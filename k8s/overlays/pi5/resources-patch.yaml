@@ -1,0 +1,74 @@
+# App limits leave RAM for K3s, Argo CD, Traefik and the OS on an 8 GB Pi.
+# CPU limits may be oversubscribed; requests remain the scheduling reservation.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plex
+  namespace: media
+spec:
+  template:
+    spec:
+      containers:
+      - name: plex
+        resources:
+          limits:
+            memory: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarr
+  namespace: media
+spec:
+  template:
+    spec:
+      containers:
+      - name: sonarr
+        resources:
+          limits:
+            memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radarr
+  namespace: media
+spec:
+  template:
+    spec:
+      containers:
+      - name: radarr
+        resources:
+          limits:
+            memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: overseerr
+  namespace: media
+spec:
+  template:
+    spec:
+      containers:
+      - name: overseerr
+        resources:
+          limits:
+            memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gluetun-qbittorrent
+  namespace: media
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: gluetun
+        resources:
+          requests:
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi

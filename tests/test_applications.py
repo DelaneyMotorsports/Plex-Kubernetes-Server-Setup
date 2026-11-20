@@ -6,7 +6,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def pod(app):
-    return yaml.safe_load((ROOT / 'k8s/base' / app / 'deployment.yaml').read_text())['spec']['template']['spec']
+    directory = ROOT / 'k8s/base' / app
+    if not directory.exists():
+        directory = ROOT / 'k8s/addons' / app
+    return yaml.safe_load((directory / 'deployment.yaml').read_text())['spec']['template']['spec']
 
 
 class ApplicationTests(unittest.TestCase):

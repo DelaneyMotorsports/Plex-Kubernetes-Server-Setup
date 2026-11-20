@@ -99,6 +99,9 @@ def prepare(snapshot, overwrite, retry=False):
         kubectl('-n', NAMESPACE, 'wait', '--for=delete', 'pod', '--all', '--timeout=300s')
     job = json.loads(kubectl('-n', NAMESPACE, 'create', 'job', name,
                             '--from=cronjob/config-backup', '--dry-run=client', '-o', 'json'))
+    # Preserve success evidence until the operator has reviewed and resumed.
+    job['spec'].pop('ttlSecondsAfterFinished', None)
+    job['metadata'].pop('ownerReferences', None)
     pod = job['spec']['template']['spec']
     container = pod['containers'][0]
     container['args'] = ['restore', '--snapshot', snapshot]

@@ -62,6 +62,8 @@ class RestoreControlTests(unittest.TestCase):
         self.assertLess(scale, apply_job)
         policies = [args for args, _ in self.actions if 'patch' in args and 'application' in args]
         self.assertEqual([p[4] for p in policies], ['root', 'media-stack'])
+        self.assertNotIn('ttlSecondsAfterFinished', self.applied_job['spec'])
+        self.assertNotIn('ownerReferences', self.applied_job['metadata'])
         pod = self.applied_job['spec']['template']['spec']
         self.assertFalse(pod['automountServiceAccountToken'])
         container = pod['containers'][0]

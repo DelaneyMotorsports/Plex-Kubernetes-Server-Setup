@@ -22,10 +22,10 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
-        fsGroupChangePolicy: OnRootMismatch   # don't recursively chown the huge NFS tree every restart
+        fsGroupChangePolicy: OnRootMismatch
       containers:
       - name: radarr
-        image: lscr.io/linuxserver/radarr:latest
+        image: lscr.io/linuxserver/radarr@sha256:044788f5508b7f67a3e0368cdd142c77c4d4cd5aec2efaba53e1a68b6b6231e7
         envFrom:
         - configMapRef:
             name: media-stack-config
@@ -62,11 +62,12 @@ spec:
           failureThreshold: 3
         resources:
           requests:
-            cpu: "100m"
-            memory: "128Mi"
+            cpu: 100m
+            memory: 128Mi
           limits:
-            cpu: "500m"
-            memory: "384Mi"
+            cpu: 500m
+            memory: 384Mi
+        imagePullPolicy: IfNotPresent
       volumes:
       - name: config
         persistentVolumeClaim:

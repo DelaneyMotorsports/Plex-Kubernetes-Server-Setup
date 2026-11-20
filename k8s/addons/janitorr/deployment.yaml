@@ -27,7 +27,7 @@ spec:
         runAsGroup: 1000
       containers:
       - name: janitorr
-        image: ghcr.io/schaka/janitorr:jvm-stable
+        image: ghcr.io/schaka/janitorr:jvm-stable@sha256:eecb604b6307f4ba5674bec7e3fc142d7212361571a1a9dc1f39e0fd069a4434
         envFrom:
         - configMapRef:
             name: media-stack-config
@@ -47,6 +47,7 @@ spec:
           limits:
             cpu: 200m
             memory: 256Mi
+        imagePullPolicy: IfNotPresent
       volumes:
       - name: config
         persistentVolumeClaim:

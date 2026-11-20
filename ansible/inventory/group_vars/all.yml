@@ -29,6 +29,8 @@ gitops_overlay_path: "k8s/overlays/pi5"
 argocd_version: "v2.13.2"
 sealed_secrets_version: "v0.27.1"
 traefik_chart_version: "42.4.0"
+traefik_image_version: "v3.7.18"
+traefik_image_digest: "sha256:9c437ac4f09ce6f4980a8544902d3475fdf70a1a7c578729581d2535dfa7d635"
 
 # ---- Remote access (optional) ----
 enable_tailscale: false

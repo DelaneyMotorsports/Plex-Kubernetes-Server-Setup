@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import sys
 import yaml
-from image_registry import inspect_image
+from image_registry import inspect_image, split_image
 
 
 def images(value):
@@ -27,11 +27,15 @@ def main():
     parser.add_argument('--require-digests', action='store_true')
     args = parser.parse_args()
     refs = sorted({i for path in args.manifests for doc in yaml.safe_load_all(path.read_text()) for i in images(doc)})
+    lock_path = Path(__file__).resolve().parents[1] / 'ci/images.lock.json'
+    allowed = {split_image(entry['reference']) for entry in json.loads(lock_path.read_text())['images'].values()} if lock_path.exists() else set()
     errors = []
     def check(ref):
         try:
             if args.require_digests and '@sha256:' not in ref:
                 raise RuntimeError('immutable manifest digest required')
+            if args.require_digests and split_image(ref) not in allowed:
+                raise RuntimeError('rendered image is not in the reviewed image lock')
             result = inspect_image(ref)
             if not {'linux/amd64', 'linux/arm64'} <= set(result['platforms']):
                 raise RuntimeError('AMD64 and ARM64 images must both be published')

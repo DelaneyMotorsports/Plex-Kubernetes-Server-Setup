@@ -11,6 +11,7 @@ done
 for addon in k8s/addons/*/; do
   name=$(basename "$addon")
   kustomize build "$addon" > "$TASK_RENDER_DIR/addon-$name.yaml"
+  python3 scripts/validate-manifests.py --allow-template-values "$TASK_RENDER_DIR/pi5.yaml" "$TASK_RENDER_DIR/addon-$name.yaml"
 done
 python3 scripts/render-ingress.py --directory "$TASK_RENDER_DIR"
 # CRDs are checked separately against checksum-pinned upstream OpenAPI schemas.
@@ -19,6 +20,8 @@ kubeconform -strict -kubernetes-version 1.31.0 -summary \
   -skip Application,AppProject,SealedSecret \
   "$TASK_RENDER_DIR"/*.yaml argocd/root.yaml argocd/apps/*.yaml
 python3 scripts/validate-custom-resources.py "$TASK_RENDER_DIR"/*.yaml argocd/root.yaml argocd/apps/*.yaml
+python3 scripts/lock-images.py --check
+python3 scripts/resource-budget.py "$TASK_RENDER_DIR/pi5.yaml" "$TASK_RENDER_DIR/traefik.yaml"
 python3 -m unittest discover -s tests -v
 shellcheck -x install.sh scripts/*.sh
 (

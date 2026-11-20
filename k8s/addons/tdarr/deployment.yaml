@@ -25,7 +25,7 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       containers:
       - name: tdarr
-        image: ghcr.io/haveagitgat/tdarr:latest
+        image: ghcr.io/haveagitgat/tdarr@sha256:84743e5ae433a5b49cb463b2dff2679eb02f0cac24fb88c830f49bf8aa9f1c04
         envFrom:
         - configMapRef:
             name: media-stack-config
@@ -84,9 +84,12 @@ spec:
           requests:
             cpu: 200m
             memory: 256Mi
+            ephemeral-storage: 2Gi
           limits:
             cpu: 2000m
             memory: 2Gi
+            ephemeral-storage: 40Gi
+        imagePullPolicy: IfNotPresent
       volumes:
       - name: config
         persistentVolumeClaim:
@@ -98,7 +101,8 @@ spec:
         persistentVolumeClaim:
           claimName: media-nfs-pvc
       - name: transcode-cache
-        emptyDir: {}
+        emptyDir:
+          sizeLimit: 32Gi
       - name: server
         persistentVolumeClaim:
           claimName: tdarr-server-pvc

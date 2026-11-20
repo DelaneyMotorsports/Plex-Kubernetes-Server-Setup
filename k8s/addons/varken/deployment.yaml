@@ -24,7 +24,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: varken
-        image: boerderij/varken:latest
+        image: boerderij/varken@sha256:784aaf577c822a3e69c5b2792e0422896c8cdb0455e584cd5a4e46bca789848d
         envFrom:
         - configMapRef:
             name: media-stack-config
@@ -33,11 +33,12 @@ spec:
           mountPath: /config
         resources:
           requests:
-            cpu: "50m"
-            memory: "64Mi"
+            cpu: 50m
+            memory: 64Mi
           limits:
-            cpu: "200m"
-            memory: "256Mi"
+            cpu: 200m
+            memory: 256Mi
+        imagePullPolicy: IfNotPresent
       volumes:
       - name: config
         persistentVolumeClaim:

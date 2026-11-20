@@ -24,7 +24,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: prowlarr
-        image: lscr.io/linuxserver/prowlarr:latest
+        image: lscr.io/linuxserver/prowlarr@sha256:45117ba8439e2337a92ffe38a451a4dafc0be771754d05d88cdf102419d09646
         envFrom:
         - configMapRef:
             name: media-stack-config
@@ -55,11 +55,12 @@ spec:
           failureThreshold: 3
         resources:
           requests:
-            cpu: "50m"
-            memory: "64Mi"
+            cpu: 50m
+            memory: 64Mi
           limits:
-            cpu: "200m"
-            memory: "256Mi"
+            cpu: 200m
+            memory: 256Mi
+        imagePullPolicy: IfNotPresent
       volumes:
       - name: config
         persistentVolumeClaim:

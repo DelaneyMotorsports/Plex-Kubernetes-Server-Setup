@@ -3,7 +3,7 @@
 Public OCI manifest indexes were queried directly for availability and
 `linux/arm64` / `linux/amd64` support. This checks image publication, not that an
 app with your private configuration or API keys has completed a startup test.
-The later image lock records the exact verified manifest indexes.
+The image lock records the exact verified manifest indexes.
 
 | Application | Result and required configuration |
 | --- | --- |
@@ -27,7 +27,7 @@ and a separate decision to discard their contents.
 
 ## Optional services
 
-Janitorr and Varken are under `k8s/addons/`. Add their directory as a Kustomize
+All enrichment services are under `k8s/addons/` and are opt-in. Add a directory as a Kustomize
 resource in your own overlay only after configuring the external requirements.
 Janitorr uses the same `/media` path as this stack; make its configuration paths
 match. Neither addon is part of the Plex default deployment.

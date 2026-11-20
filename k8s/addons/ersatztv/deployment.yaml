@@ -1,66 +1,74 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: profilarr
+  name: ersatztv
   namespace: media
   labels:
-    app.kubernetes.io/name: profilarr
+    app.kubernetes.io/name: ersatztv
     app.kubernetes.io/part-of: media-stack
-    app.kubernetes.io/component: config-sync
+    app.kubernetes.io/component: live-tv
 spec:
   replicas: 1
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app: profilarr
+      app: ersatztv
   template:
     metadata:
       labels:
-        app: profilarr
+        app: ersatztv
         app.kubernetes.io/part-of: media-stack
     spec:
       securityContext:
         fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
       containers:
-      - name: profilarr
-        image: ghcr.io/dictionarry-hub/profilarr:latest
+      - name: ersatztv
+        image: jasongdove/ersatztv@sha256:7c402e5f348184359e0951b44d55fb6db3df671fa77fc91dcbd609034d28778b
         envFrom:
         - configMapRef:
             name: media-stack-config
         ports:
         - name: http
-          containerPort: 6868
+          containerPort: 8409
         volumeMounts:
         - name: config
-          mountPath: /config
+          mountPath: /root/.local/share/ersatztv
+        - name: media-nfs
+          mountPath: /media
+          subPath: media
         startupProbe:
           httpGet:
             path: /
-            port: 6868
-          initialDelaySeconds: 15
+            port: 8409
+          initialDelaySeconds: 20
           periodSeconds: 10
           failureThreshold: 18
         livenessProbe:
           httpGet:
             path: /
-            port: 6868
+            port: 8409
           periodSeconds: 30
           failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /
-            port: 6868
+            port: 8409
           periodSeconds: 10
           failureThreshold: 3
         resources:
           requests:
-            cpu: "50m"
-            memory: "64Mi"
+            cpu: 100m
+            memory: 256Mi
           limits:
-            cpu: "200m"
-            memory: "256Mi"
+            cpu: 1000m
+            memory: 1Gi
+        imagePullPolicy: IfNotPresent
       volumes:
       - name: config
         persistentVolumeClaim:
-          claimName: profilarr-config-pvc
+          claimName: ersatztv-config-pvc
+      - name: media-nfs
+        persistentVolumeClaim:
+          claimName: media-nfs-pvc

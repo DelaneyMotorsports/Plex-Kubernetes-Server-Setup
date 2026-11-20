@@ -27,7 +27,7 @@ spec:
         runAsGroup: 1000
       containers:
       - name: unpackerr
-        image: golift/unpackerr:latest
+        image: golift/unpackerr@sha256:fc8b69571033f197d4db5cf22a573acb3bb891c9f8033431b9a1fcf679ca3e9c
         envFrom:
         - configMapRef:
             name: media-stack-config
@@ -59,6 +59,7 @@ spec:
           limits:
             cpu: 300m
             memory: 256Mi
+        imagePullPolicy: IfNotPresent
       volumes:
       - name: config
         persistentVolumeClaim:
