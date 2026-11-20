@@ -1,15 +1,3 @@
-# Nightly disaster-recovery backup of app config (Plex DB, *arr configs, etc.).
-#
-# App configs stay on the node's local-path storage on purpose — SQLite over NFS has
-# locking problems. This job snapshots ALL of that local-path data in one shot (via a
-# single hostPath over the K3s storage dir) and writes a rotated tarball to the NAS over
-# NFS. That closes the self-healing loop: if the node is reimaged, `ansible-playbook
-# site.yml` rebuilds it, Argo repaints the apps, and the latest config tarball is waiting
-# on the NAS to restore.
-#
-# Single-node note: this backs up config volumes present on the node it runs on. On a
-# multi-node cluster, run one job per node (add a nodeSelector) or switch to a
-# volume-snapshot approach.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -20,43 +8,230 @@ metadata:
     app.kubernetes.io/part-of: media-stack
     app.kubernetes.io/component: backup
 spec:
-  schedule: "0 3 * * *"          # 03:00 daily
+  schedule: 0 3 * * *
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
-      backoffLimit: 2
+      backoffLimit: 1
       template:
         spec:
-          restartPolicy: OnFailure
+          restartPolicy: Never
           containers:
           - name: backup
-            image: busybox:1.36
-            command: ["/bin/sh", "-c"]
+            image: python:3.12-alpine
+            command:
+            - python3
+            - /scripts/config-recovery.py
             args:
-              - |
-                set -e
-                TS=$(date +%Y%m%d-%H%M%S)
-                DEST=/backup/config
-                mkdir -p "$DEST"
-                echo "Backing up local-path config volumes -> $DEST/config-$TS.tgz"
-                tar czf "$DEST/config-$TS.tgz" -C /local-path .
-                echo "Rotating: keeping the 7 most recent backups"
-                ls -1t "$DEST"/config-*.tgz | tail -n +8 | xargs -r rm -f
-                echo "Backup complete: $(ls -lh "$DEST/config-$TS.tgz")"
+            - backup
+            env:
+            - name: PATH
+              value: /tools:/usr/local/bin:/usr/bin:/bin
+            - name: RESTIC_REPOSITORY
+              value: /backup/restic
+            - name: RESTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: config-backup-secret
+                  key: RESTIC_PASSWORD
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+                add:
+                - CHOWN
+                - DAC_OVERRIDE
+                - FOWNER
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+                ephemeral-storage: 1Gi
+              limits:
+                cpu: 1000m
+                memory: 512Mi
+                ephemeral-storage: 100Gi
             volumeMounts:
-            - name: local-path
-              mountPath: /local-path
+            - name: tools
+              mountPath: /tools
               readOnly: true
+            - name: script
+              mountPath: /scripts
+              readOnly: true
+            - name: work
+              mountPath: /work
             - name: media-nfs
               mountPath: /backup
               subPath: backups
+            - name: config-0
+              mountPath: /config-volumes/gluetun-config-pvc
+              readOnly: true
+            - name: config-1
+              mountPath: /config-volumes/qbittorrent-config-pvc
+              readOnly: true
+            - name: config-2
+              mountPath: /config-volumes/prowlarr-config-pvc
+              readOnly: true
+            - name: config-3
+              mountPath: /config-volumes/sonarr-config-pvc
+              readOnly: true
+            - name: config-4
+              mountPath: /config-volumes/radarr-config-pvc
+              readOnly: true
+            - name: config-5
+              mountPath: /config-volumes/bazarr-config-pvc
+              readOnly: true
+            - name: config-6
+              mountPath: /config-volumes/overseerr-config-pvc
+              readOnly: true
+            - name: config-7
+              mountPath: /config-volumes/plex-config-pvc
+              readOnly: true
+            - name: config-8
+              mountPath: /config-volumes/tdarr-config-pvc
+              readOnly: true
+            - name: config-9
+              mountPath: /config-volumes/tdarr-logs-pvc
+              readOnly: true
+            - name: config-10
+              mountPath: /config-volumes/varken-config-pvc
+              readOnly: true
+            - name: config-11
+              mountPath: /config-volumes/sub-zero-config-pvc
+              readOnly: true
+            - name: config-12
+              mountPath: /config-volumes/theposterdb-config-pvc
+              readOnly: true
+            - name: config-13
+              mountPath: /config-volumes/mediux-config-pvc
+              readOnly: true
+            - name: config-14
+              mountPath: /config-volumes/janitorr-config-pvc
+              readOnly: true
+            - name: config-15
+              mountPath: /config-volumes/scannarr-config-pvc
+              readOnly: true
+            - name: config-16
+              mountPath: /config-volumes/recyclarr-config-pvc
+              readOnly: true
+            - name: config-17
+              mountPath: /config-volumes/profilarr-config-pvc
+              readOnly: true
+            - name: config-18
+              mountPath: /config-volumes/unpackerr-config-pvc
+              readOnly: true
+            - name: config-19
+              mountPath: /config-volumes/ersatztv-config-pvc
+              readOnly: true
+            - name: config-20
+              mountPath: /config-volumes/kometa-config-pvc
+              readOnly: true
+            - name: config-21
+              mountPath: /config-volumes/posterr-config-pvc
+              readOnly: true
           volumes:
-          - name: local-path
-            hostPath:
-              path: /var/lib/rancher/k3s/storage    # K3s local-path provisioner data
-              type: DirectoryOrCreate
+          - name: tools
+            emptyDir: {}
+          - name: script
+            configMap:
+              name: config-backup-script
+          - name: work
+            emptyDir:
+              sizeLimit: 100Gi
           - name: media-nfs
             persistentVolumeClaim:
               claimName: media-nfs-pvc
+          - name: config-0
+            persistentVolumeClaim:
+              claimName: gluetun-config-pvc
+          - name: config-1
+            persistentVolumeClaim:
+              claimName: qbittorrent-config-pvc
+          - name: config-2
+            persistentVolumeClaim:
+              claimName: prowlarr-config-pvc
+          - name: config-3
+            persistentVolumeClaim:
+              claimName: sonarr-config-pvc
+          - name: config-4
+            persistentVolumeClaim:
+              claimName: radarr-config-pvc
+          - name: config-5
+            persistentVolumeClaim:
+              claimName: bazarr-config-pvc
+          - name: config-6
+            persistentVolumeClaim:
+              claimName: overseerr-config-pvc
+          - name: config-7
+            persistentVolumeClaim:
+              claimName: plex-config-pvc
+          - name: config-8
+            persistentVolumeClaim:
+              claimName: tdarr-config-pvc
+          - name: config-9
+            persistentVolumeClaim:
+              claimName: tdarr-logs-pvc
+          - name: config-10
+            persistentVolumeClaim:
+              claimName: varken-config-pvc
+          - name: config-11
+            persistentVolumeClaim:
+              claimName: sub-zero-config-pvc
+          - name: config-12
+            persistentVolumeClaim:
+              claimName: theposterdb-config-pvc
+          - name: config-13
+            persistentVolumeClaim:
+              claimName: mediux-config-pvc
+          - name: config-14
+            persistentVolumeClaim:
+              claimName: janitorr-config-pvc
+          - name: config-15
+            persistentVolumeClaim:
+              claimName: scannarr-config-pvc
+          - name: config-16
+            persistentVolumeClaim:
+              claimName: recyclarr-config-pvc
+          - name: config-17
+            persistentVolumeClaim:
+              claimName: profilarr-config-pvc
+          - name: config-18
+            persistentVolumeClaim:
+              claimName: unpackerr-config-pvc
+          - name: config-19
+            persistentVolumeClaim:
+              claimName: ersatztv-config-pvc
+          - name: config-20
+            persistentVolumeClaim:
+              claimName: kometa-config-pvc
+          - name: config-21
+            persistentVolumeClaim:
+              claimName: posterr-config-pvc
+          serviceAccountName: config-backup
+          automountServiceAccountToken: true
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            seccompProfile:
+              type: RuntimeDefault
+          initContainers:
+          - name: restic
+            image: restic/restic:0.18.1
+            command:
+            - /bin/sh
+            - -c
+            - cp /usr/bin/restic /tools/restic
+            volumeMounts:
+            - name: tools
+              mountPath: /tools
+        metadata:
+          labels:
+            app: config-backup
+            app.kubernetes.io/part-of: media-stack
+      activeDeadlineSeconds: 7200
+      ttlSecondsAfterFinished: 86400
+  timeZone: America/New_York
+  startingDeadlineSeconds: 3600

@@ -17,3 +17,8 @@ kubeconfig
 talosconfig
 controlplane.yaml
 worker.yaml
+
+# Python validation artifacts
+__pycache__/
+*.pyc
+.pytest_cache/

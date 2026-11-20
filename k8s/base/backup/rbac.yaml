@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: config-backup
+  namespace: media
+---
+# RBAC cannot constrain list by a label selector. This identity can list secrets
+# in kube-system; protect the backup pod and its encrypted repository password.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: media-sealing-key-backup
+  namespace: kube-system
+rules:
+- apiGroups: [""]
+  resources: [secrets]
+  verbs: [list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: media-sealing-key-backup
+  namespace: kube-system
+subjects:
+- kind: ServiceAccount
+  name: config-backup
+  namespace: media
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: media-sealing-key-backup
