@@ -1,25 +1,26 @@
 ---
-# Secure remote management without exposing any public ports. Once up, the Argo CD UI
-# and every service are reachable from anywhere on your tailnet as if you were on the LAN.
 - name: Check whether Tailscale is installed
   ansible.builtin.stat:
     path: /usr/bin/tailscale
-  register: ts_bin
-
+  register: tailscale_bin
+- name: Download Tailscale installer
+  ansible.builtin.get_url:
+    url: https://tailscale.com/install.sh
+    dest: /var/tmp/tailscale-install.sh
+    mode: "0700"
+  when: not tailscale_bin.stat.exists
 - name: Install Tailscale
-  ansible.builtin.shell: curl -fsSL https://tailscale.com/install.sh | sh
-  args:
-    executable: /bin/bash
-  when: not ts_bin.stat.exists
+  when: not tailscale_bin.stat.exists
   changed_when: true
-
+  ansible.builtin.command:
+    argv:
+      - sh
+      - /var/tmp/tailscale-install.sh
 - name: Bring Tailscale up
-  ansible.builtin.command: >
-    tailscale up --authkey {{ tailscale_authkey }} --ssh --hostname {{ ansible_hostname }}
+  ansible.builtin.command: "tailscale up --authkey {{ tailscale_authkey }} --ssh --hostname {{ ansible_hostname }}\n"
   when: tailscale_authkey | length > 0
   changed_when: true
-  no_log: true      # never leak the auth key into logs
-
+  no_log: true
 - name: Warn if no auth key was provided
   ansible.builtin.debug:
     msg: "Tailscale installed but not connected — pass -e tailscale_authkey=tskey-... to join the tailnet."

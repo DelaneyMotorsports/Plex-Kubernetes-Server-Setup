@@ -19,7 +19,7 @@
 
 - name: Set system timezone
   ansible.builtin.command: "timedatectl set-timezone {{ timezone }}"
-  register: tz_set
+  register: common_tz_set
   changed_when: false
   failed_when: false
 
@@ -37,11 +37,10 @@
   loop:
     - /boot/firmware/cmdline.txt
     - /boot/cmdline.txt
-  register: rpi_cgroup
-  changed_when: "'CHANGED' in (rpi_cgroup.stdout | default(''))"
+  register: common_rpi_cgroup
+  changed_when: "'CHANGED' in (common_rpi_cgroup.stdout | default(''))"
 
 - name: Reboot to apply cgroup change (Raspberry Pi, first provision only)
   ansible.builtin.reboot:
     reboot_timeout: 300
-  when: rpi_cgroup.results | selectattr('stdout', 'defined')
-        | selectattr('stdout', 'search', 'CHANGED') | list | length > 0
+  when: common_rpi_cgroup.results | selectattr('stdout', 'defined') | selectattr('stdout', 'search', 'CHANGED') | list | length > 0

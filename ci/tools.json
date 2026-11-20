@@ -1,0 +1,35 @@
+{
+  "helm": {
+    "url": "https://get.helm.sh/helm-v3.19.0-linux-amd64.tar.gz",
+    "member": "linux-amd64/helm",
+    "sha256": "a7f81ce08007091b86d8bd696eb4d86b8d0f2e1b9f6c714be62f82f96a594496"
+  },
+  "kustomize": {
+    "url": "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.7.1/kustomize_v5.7.1_linux_amd64.tar.gz",
+    "member": "kustomize",
+    "sha256": "ea375e7372f9aa029129d4b2d16c66b7750b7f1213c4f66f910d981c895818d8"
+  },
+  "kubeconform": {
+    "url": "https://github.com/yannh/kubeconform/releases/download/v0.7.0/kubeconform-linux-amd64.tar.gz",
+    "member": "kubeconform",
+    "sha256": "c31518ddd122663b3f3aa874cfe8178cb0988de944f29c74a0b9260920d115d3"
+  },
+  "restic": {
+    "url": "https://github.com/restic/restic/releases/download/v0.18.1/restic_0.18.1_linux_amd64.bz2",
+    "compression": "bz2",
+    "sha256": "680838f19d67151adba227e1570cdd8af12c19cf1735783ed1ba928bc41f363d"
+  },
+  "kind": {
+    "url": "https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64",
+    "sha256": "517ab7fc89ddeed5fa65abf71530d90648d9638ef0c4cde22c2c11f8097b8889"
+  },
+  "kubectl": {
+    "url": "https://dl.k8s.io/release/v1.31.12/bin/linux/amd64/kubectl",
+    "sha256": "cf609add577be9c898c52027e800a008331d6b2a202ecc61413e847f7a12ccd0"
+  },
+  "shellcheck": {
+    "url": "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz",
+    "member": "shellcheck-v0.11.0/shellcheck",
+    "sha256": "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198"
+  }
+}

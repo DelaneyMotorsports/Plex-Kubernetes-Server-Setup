@@ -2,33 +2,36 @@
 - name: Check whether K3s is already installed
   ansible.builtin.stat:
     path: /usr/local/bin/k3s
-  register: k3s_bin
-
+  register: k3s_agent_bin
 - name: Read the node-token from the control-plane node
   ansible.builtin.slurp:
     src: /var/lib/rancher/k3s/server/node-token
   delegate_to: "{{ groups['k3s_server'][0] }}"
   become: true
-  register: server_token
-
+  register: k3s_agent_server_token
+  no_log: true
 - name: Resolve the control-plane API endpoint
   ansible.builtin.set_fact:
-    k3s_server_url: >-
-      https://{{ hostvars[groups['k3s_server'][0]].ansible_host
-                 | default(groups['k3s_server'][0]) }}:6443
-
+    k3s_agent_server_url: "https://{{ hostvars[groups['k3s_server'][0]].ansible_host\n           | default(groups['k3s_server'][0]) }}:6443"
+- name: Download K3s installer
+  ansible.builtin.get_url:
+    url: https://get.k3s.io
+    dest: /var/tmp/k3s-install.sh
+    mode: "0700"
+  when: not k3s_agent_bin.stat.exists
 - name: Install K3s agent and join the cluster
-  ansible.builtin.shell: >
-    curl -sfL https://get.k3s.io |
-    INSTALL_K3S_VERSION="{{ k3s_version }}"
-    K3S_URL="{{ k3s_server_url }}"
-    K3S_TOKEN="{{ server_token.content | b64decode | trim }}"
-    sh -s - agent
-  args:
-    executable: /bin/bash
-  when: not k3s_bin.stat.exists
+  when: not k3s_agent_bin.stat.exists
   changed_when: true
-
+  ansible.builtin.command:
+    argv:
+      - sh
+      - /var/tmp/k3s-install.sh
+      - agent
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    K3S_URL: "{{ k3s_agent_server_url }}"
+    K3S_TOKEN: "{{ k3s_agent_server_token.content | b64decode | trim }}"
+  no_log: true
 - name: Ensure K3s agent service is running and enabled
   ansible.builtin.systemd:
     name: k3s-agent

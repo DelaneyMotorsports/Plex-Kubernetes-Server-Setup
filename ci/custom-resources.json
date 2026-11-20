@@ -1,0 +1,20 @@
+{
+  "argoproj.io/v1alpha1/Application": {
+    "kind": "Application",
+    "version": "v1alpha1",
+    "url": "https://raw.githubusercontent.com/argoproj/argo-cd/v2.13.2/manifests/crds/application-crd.yaml",
+    "sha256": "69377c0f0308b610beee247d7d5352dfd9a2947c00a2ebf29ec0282101b23cd5"
+  },
+  "argoproj.io/v1alpha1/AppProject": {
+    "kind": "AppProject",
+    "version": "v1alpha1",
+    "url": "https://raw.githubusercontent.com/argoproj/argo-cd/v2.13.2/manifests/crds/appproject-crd.yaml",
+    "sha256": "d9a63cb9a12ef66bbf4e811c94fbaa3922af00ed7bb3af791e85dcd7337ffe4c"
+  },
+  "bitnami.com/v1alpha1/SealedSecret": {
+    "kind": "SealedSecret",
+    "version": "v1alpha1",
+    "url": "https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.1/controller.yaml",
+    "sha256": "f0616f1c05e331855162f4a214ddd2b49cb52979a5837dd4bda2b8fcac8fb2da"
+  }
+}

@@ -8,8 +8,8 @@
 - name: Wait for the Traefik controller before retiring ingress-nginx
   ansible.builtin.command: >-
     k3s kubectl -n ingress-traefik rollout status deployment/media-ingress --timeout=180s
-  register: traefik_ready
-  until: traefik_ready.rc == 0
+  register: ingress_traefik_ready
+  until: ingress_traefik_ready.rc == 0
   retries: 10
   delay: 10
   changed_when: false
@@ -20,21 +20,35 @@
   ansible.builtin.command: >-
     k3s kubectl -n ingress-nginx delete deployment,service,job
     -l app.kubernetes.io/instance=ingress-nginx --ignore-not-found=true
-  register: nginx_retired
-  changed_when: "'deleted' in nginx_retired.stdout"
+  register: ingress_traefik_nginx_retired
+  changed_when: "'deleted' in ingress_traefik_nginx_retired.stdout"
 
 - name: Remove the retired ingress-nginx admission webhook
   ansible.builtin.command: >-
     k3s kubectl delete validatingwebhookconfiguration ingress-nginx-admission --ignore-not-found=true
-  register: nginx_webhook
-  changed_when: "'deleted' in nginx_webhook.stdout"
+  register: ingress_traefik_nginx_webhook
+  changed_when: "'deleted' in ingress_traefik_nginx_webhook.stdout"
+
+- name: Remove the retired controller namespace permissions and configuration
+  ansible.builtin.command: >-
+    k3s kubectl -n ingress-nginx delete serviceaccount,role,rolebinding,configmap
+    -l app.kubernetes.io/instance=ingress-nginx --ignore-not-found=true
+  register: ingress_traefik_nginx_namespaced
+  changed_when: "'deleted' in ingress_traefik_nginx_namespaced.stdout"
+
+- name: Remove the retired controller cluster permissions and class
+  ansible.builtin.command: >-
+    k3s kubectl delete clusterrole,clusterrolebinding,ingressclass
+    -l app.kubernetes.io/instance=ingress-nginx --ignore-not-found=true
+  register: ingress_traefik_nginx_cluster
+  changed_when: "'deleted' in ingress_traefik_nginx_cluster.stdout"
 
 - name: Wait for the Traefik LoadBalancer address
   ansible.builtin.command: >-
     k3s kubectl -n ingress-traefik get service media-ingress
     -o jsonpath={.status.loadBalancer.ingress}
-  register: traefik_address
-  until: traefik_address.rc == 0 and traefik_address.stdout | length > 2
+  register: ingress_traefik_address
+  until: ingress_traefik_address.rc == 0 and ingress_traefik_address.stdout | length > 2
   retries: 30
   delay: 5
   changed_when: false

@@ -14,12 +14,10 @@ NAMESPACE="media"
 # ── 1. Preflight checks
 echo "==> Checking prerequisites..."
 
-for cmd in kubectl; do
-  if ! command -v "$cmd" &>/dev/null; then
-    echo "Error: $cmd not found. Install it and try again."
-    exit 1
-  fi
-done
+if ! command -v kubectl &>/dev/null; then
+  echo "Error: kubectl not found. Install it and try again."
+  exit 1
+fi
 
 if ! kubectl cluster-info &>/dev/null; then
   echo "Error: Cannot reach the Kubernetes cluster. Check your kubeconfig."

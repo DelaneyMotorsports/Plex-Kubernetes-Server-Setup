@@ -1,3 +1,4 @@
+---
 # ── Cluster-wide configuration ───────────────────────────────────────────────
 # One place to tune versions, the NAS, and feature flags for the whole fleet.
 

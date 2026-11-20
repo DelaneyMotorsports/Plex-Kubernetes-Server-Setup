@@ -315,3 +315,10 @@ waits for the new controller, removes the former ingress-nginx workload/admissio
 and waits for ServiceLB to assign an address. Expect a brief routing interruption during
 the port handover; application data and namespaces are retained. Inspect `kubectl get
 helmchart -n kube-system media-ingress` if installation does not finish.
+
+## Validation
+
+[Validation instructions](docs/validation.md) cover blocking schema, reference,
+image, Ansible and ShellCheck checks, encrypted recovery tests, and isolated real-app
+startup behind Traefik. The workflow runs on this improvement branch and pull requests.
+No production cluster or private VPN credentials are used by CI.

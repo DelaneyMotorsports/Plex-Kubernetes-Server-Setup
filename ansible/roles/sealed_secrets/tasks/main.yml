@@ -8,8 +8,8 @@
     https://github.com/bitnami-labs/sealed-secrets/releases/download/{{ sealed_secrets_version }}/controller.yaml
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
-  register: ss_apply
-  changed_when: "'created' in ss_apply.stdout or 'configured' in ss_apply.stdout"
+  register: sealed_secrets_apply
+  changed_when: "'created' in sealed_secrets_apply.stdout or 'configured' in sealed_secrets_apply.stdout"
 
 - name: Wait for the Sealed Secrets controller to be Available
   ansible.builtin.command: >

@@ -15,6 +15,8 @@ fi
 
 # Validate required secret fields
 required_keys=(WIREGUARD_PRIVATE_KEY WIREGUARD_ADDRESSES PLEX_CLAIM)
+# Runtime path is supplied by the operator.
+# shellcheck disable=SC1090
 source "$ENV_FILE"
 
 for key in "${required_keys[@]}"; do

@@ -1,6 +1,7 @@
 ---
 - name: Ensure argocd namespace exists
   ansible.builtin.shell: |
+    set -o pipefail
     k3s kubectl create namespace argocd --dry-run=client -o yaml | k3s kubectl apply -f -
   args:
     executable: /bin/bash
@@ -14,8 +15,8 @@
     https://raw.githubusercontent.com/argoproj/argo-cd/{{ argocd_version }}/manifests/install.yaml
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
-  register: argo_install
-  changed_when: "'created' in argo_install.stdout or 'configured' in argo_install.stdout"
+  register: argocd_install
+  changed_when: "'created' in argocd_install.stdout or 'configured' in argocd_install.stdout"
 
 - name: Wait for the Argo CD server to be Available
   ansible.builtin.command: >
@@ -36,8 +37,8 @@
   ansible.builtin.command: k3s kubectl apply -f /tmp/argocd-root-app.yaml
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
-  register: root_apply
-  changed_when: "'created' in root_apply.stdout or 'configured' in root_apply.stdout"
+  register: argocd_root_apply
+  changed_when: "'created' in argocd_root_apply.stdout or 'configured' in argocd_root_apply.stdout"
 
 - name: Show how to reach the Argo CD UI
   ansible.builtin.debug:

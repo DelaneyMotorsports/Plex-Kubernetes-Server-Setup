@@ -5,16 +5,16 @@
 # the NAS may legitimately not be up yet on first provision.
 - name: Query NFS exports on the NAS (non-fatal)
   ansible.builtin.command: "showmount -e {{ nas_ip }}"
-  register: nfs_check
+  register: nfs_client_check
   changed_when: false
   failed_when: false
 
 - name: Report NAS reachability
   ansible.builtin.debug:
     msg: >-
-      {{ 'OK — NAS ' + nas_ip + ' exports:\n' + nfs_check.stdout
-         if nfs_check.rc == 0
+      {{ 'OK — NAS ' + nas_ip + ' exports:\n' + nfs_client_check.stdout
+         if nfs_client_check.rc == 0
          else 'WARNING: could not list NFS exports on ' + nas_ip + ' (rc='
-              + (nfs_check.rc | string) + '). Make sure the NAS is exporting '
+              + (nfs_client_check.rc | string) + '). Make sure the NAS is exporting '
               + nas_export_path + ' (owned by ' + (puid | string) + ':' + (pgid | string)
               + ') before the media pods start.' }}

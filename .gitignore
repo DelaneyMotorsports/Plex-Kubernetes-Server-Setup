@@ -22,3 +22,6 @@ worker.yaml
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Ansible validation cache
+.ansible/
