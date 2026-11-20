@@ -33,7 +33,10 @@ spec:
           containerPort: 3000
         volumeMounts:
         - name: config
-          mountPath: /app/config
+          mountPath: /usr/src/app/config
+        - name: config
+          mountPath: /usr/src/app/public/custom
+          subPath: custom
         startupProbe:
           httpGet:
             path: /
@@ -55,11 +58,11 @@ spec:
           failureThreshold: 3
         resources:
           requests:
-            cpu: "50m"
-            memory: "64Mi"
+            cpu: 50m
+            memory: 64Mi
           limits:
-            cpu: "200m"
-            memory: "256Mi"
+            cpu: 200m
+            memory: 256Mi
       volumes:
       - name: config
         persistentVolumeClaim:

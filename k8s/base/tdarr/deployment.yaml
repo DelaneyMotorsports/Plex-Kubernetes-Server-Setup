@@ -22,7 +22,7 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
-        fsGroupChangePolicy: OnRootMismatch   # don't recursively chown the huge NFS tree every restart
+        fsGroupChangePolicy: OnRootMismatch
       containers:
       - name: tdarr
         image: ghcr.io/haveagitgat/tdarr:latest
@@ -31,19 +31,19 @@ spec:
             name: media-stack-config
         env:
         - name: serverIP
-          value: "0.0.0.0"
+          value: 0.0.0.0
         - name: serverPort
-          value: "8266"
+          value: '8266'
         - name: webUIPort
-          value: "8265"
+          value: '8265'
         - name: internalNode
-          value: "true"
+          value: 'true'
         - name: inContainer
-          value: "true"
+          value: 'true'
         - name: ffmpegVersion
-          value: "6"
+          value: '6'
         - name: UMASK_SET
-          value: "002"
+          value: '002'
         ports:
         - name: webui
           containerPort: 8265
@@ -59,6 +59,8 @@ spec:
           subPath: media
         - name: transcode-cache
           mountPath: /temp
+        - name: server
+          mountPath: /app/server
         startupProbe:
           httpGet:
             path: /
@@ -78,14 +80,13 @@ spec:
             port: 8265
           periodSeconds: 10
           failureThreshold: 3
-        # Tdarr runs the built-in transcoding node — CPU budget matches Plex
         resources:
           requests:
-            cpu: "200m"
-            memory: "256Mi"
+            cpu: 200m
+            memory: 256Mi
           limits:
-            cpu: "2000m"
-            memory: "2Gi"
+            cpu: 2000m
+            memory: 2Gi
       volumes:
       - name: config
         persistentVolumeClaim:
@@ -98,3 +99,6 @@ spec:
           claimName: media-nfs-pvc
       - name: transcode-cache
         emptyDir: {}
+      - name: server
+        persistentVolumeClaim:
+          claimName: tdarr-server-pvc

@@ -22,11 +22,11 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+        runAsUser: 1000
+        runAsGroup: 1000
       containers:
       - name: recyclarr
-        image: ghcr.io/recyclarr/recyclarr:latest
-        # Daemon mode — syncs on the schedule defined in recyclarr.yaml
-        args: ["daemon"]
+        image: ghcr.io/recyclarr/recyclarr:8
         envFrom:
         - configMapRef:
             name: media-stack-config
@@ -35,11 +35,14 @@ spec:
           mountPath: /config
         resources:
           requests:
-            cpu: "50m"
-            memory: "64Mi"
+            cpu: 50m
+            memory: 64Mi
           limits:
-            cpu: "200m"
-            memory: "256Mi"
+            cpu: 200m
+            memory: 256Mi
+        env:
+        - name: CRON_SCHEDULE
+          value: 0 4 * * *
       volumes:
       - name: config
         persistentVolumeClaim:

@@ -172,8 +172,10 @@ See [VPN validation](docs/vpn.md) before treating a deployment as leak-tested.
 | qBittorrent | 8080 | Torrent client (VPN-isolated) |
 | Gluetun | — | WireGuard VPN gateway |
 
-Plus a range of enrichment/maintenance apps (Tdarr, Janitorr, ErsatzTV, Recyclarr, Kometa, and more)
-under `k8s/base/`.
+Enrichment apps include Tdarr, ErsatzTV, Recyclarr, Profilarr, Unpackerr, Kometa and Posterr.
+See [application validation and prerequisites](docs/applications.md) before enabling extras.
+Janitorr and Varken require external services and are opt-in addons. Invalid standalone
+Sub-Zero/ThePosterDB/Mediux/Scannarr definitions have been removed; their config PVCs are retained.
 
 ---
 

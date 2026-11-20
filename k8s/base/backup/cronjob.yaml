@@ -132,6 +132,9 @@ spec:
             - name: config-21
               mountPath: /config-volumes/posterr-config-pvc
               readOnly: true
+            - name: tdarr-server
+              mountPath: /config-volumes/tdarr-server-pvc
+              readOnly: true
           volumes:
           - name: tools
             emptyDir: {}
@@ -210,6 +213,9 @@ spec:
           - name: config-21
             persistentVolumeClaim:
               claimName: posterr-config-pvc
+          - name: tdarr-server
+            persistentVolumeClaim:
+              claimName: tdarr-server-pvc
           serviceAccountName: config-backup
           automountServiceAccountToken: true
           securityContext:
